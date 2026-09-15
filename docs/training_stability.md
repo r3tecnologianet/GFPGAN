@@ -267,5 +267,14 @@ Re-enables the three `FacialComponentDiscriminatorClean` networks on base 11, wi
 Both lower-pressure variants are free of violations. The PSNR cost against base 11 is expected: the component losses target eye and mouth realism, not pixel fidelity, so PSNR alone does not measure their benefit.
 
 New base (base 12): base 11 with the three facial component discriminators at component discriminator lr 2.5e-5 (component GAN loss weight 1, component style weight 0). It keeps the upstream component loss weight and has the higher, still rising PSNR. Run 07 trains base 12 for 10,000 iterations against the 5000-iteration criterion.
+
+## Evaluation metrics
+
+PSNR measures pixel fidelity and favors smooth outputs; it does not measure what the GAN and facial component losses are for (realistic detail), and 32 validation images make differences of a few tenths of a dB noise. In the stability criterion PSNR only detects collapse. Checkpoints are also evaluated with metrics that need no weights with commercial-use restrictions (LPIPS, FID and identity distance rely on ImageNet or ArcFace networks and are not used), by an evaluation script kept outside the repository:
+- component PSNR: PSNR inside the left eye, right eye and mouth boxes of the ground truth, averaged;
+- landmark distance (LMD): mean distance in pixels between the 478 MediaPipe Face Mesh landmarks of the output and of the ground truth, over the outputs where a face is found (failures are counted separately);
+- NIQE (BasicSR implementation, no reference; lower is better).
+
+References on the 32 validation pairs: the degraded inputs have PSNR 24.90 dB, component PSNR 23.54 dB, LMD 8.50 px (no face found in 6 of 32) and NIQE 12.80; the ground truth has NIQE 5.68. Run 06 at iteration 3000 (EMA weights) has PSNR 25.01 dB, component PSNR 23.58 dB, LMD 9.52 px (4 failures) and NIQE 11.19. Its validation PSNR is therefore only 0.1 dB above the degraded input: after 3000 iterations on 617 faces the generator mainly reproduces its input, with some gain in NIQE.
 - The facial component losses of GFP-GAN are disabled. They were the first source of instability and have not been re-tested on the stable base.
 - Stability was shown for one seed and one small dataset.
