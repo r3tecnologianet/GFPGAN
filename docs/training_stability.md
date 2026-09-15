@@ -262,5 +262,10 @@ Re-enables the three `FacialComponentDiscriminatorClean` networks on base 11, wi
 | Base 11 (run 06, iterations 1–3000) | 0 | 1, at 350 | 0 | 11.61 → 25.01, rising | median 4.3, max 83 | 2650 (351–3000) | Reference |
 | Component discriminators, upstream settings | 0 | 2, at 1156 and 2855 (G total 22 and 26 against a median of 2.2–2.5) | 0 | 10.91 → 22.46 at 2500, then 21.96 | median 33, max 3.0e3 | 1698 (1157–2854) | Worse: the component GAN terms (median about 0.75 each) dominate the generator loss, PSNR is 3 dB lower. Both spikes come from one component: right eye (13.0) at 1156, mouth (20.8) at 2855, while the global fake_score stays small (−18, −0.5) |
 | Component discriminators, component GAN loss weight 0.1 | 0 | 0 | 0 | 11.35 → 23.72 at 2250, then 23.67 | median 7.2, max 377 | 3000 (the whole run) | No violation; PSNR 1.3 dB lower than base 11 at 3000 and flat since 2250 |
+| Component discriminators, component discriminator lr 2.5e-5 | 0 | 0 | 0 | 11.55 → 23.90, rising | median 7.0, max 797 | 3000 (the whole run) | No violation; PSNR 1.1 dB lower than base 11 at 3000 and still rising |
+
+Both lower-pressure variants are free of violations. The PSNR cost against base 11 is expected: the component losses target eye and mouth realism, not pixel fidelity, so PSNR alone does not measure their benefit.
+
+New base (base 12): base 11 with the three facial component discriminators at component discriminator lr 2.5e-5 (component GAN loss weight 1, component style weight 0). It keeps the upstream component loss weight and has the higher, still rising PSNR. Run 07 trains base 12 for 10,000 iterations against the 5000-iteration criterion.
 - The facial component losses of GFP-GAN are disabled. They were the first source of instability and have not been re-tested on the stable base.
 - Stability was shown for one seed and one small dataset.
