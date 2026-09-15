@@ -252,5 +252,9 @@ Open issues:
 - Validation PSNR peaks at 25.16 dB at iteration 3750, declines to 24.29 dB at 6750 and partly recovers to 24.51 dB at 10,000, without any drop above 1 dB between validations. With 617 training faces this is consistent with overfitting; the criterion does not cover it.
 
 `options/train_gfpgan_clean.yml` now uses these settings, with batch 2 and 4 data workers per GPU as in run 06.
+
+### Screening round 12 at 3000 iterations: facial component discriminators on base 11
+
+Re-enables the three `FacialComponentDiscriminatorClean` networks on base 11, with the component Gram style loss still off (`comp_style_weight: 0`). Variants: upstream component settings (component GAN loss weight 1, component discriminator lr 2e-4); component GAN loss weight 0.1; component discriminator lr 2.5e-5. Reference: run 06, iterations 1–3000 (one spike at 350, no score violation).
 - The facial component losses of GFP-GAN are disabled. They were the first source of instability and have not been re-tested on the stable base.
 - Stability was shown for one seed and one small dataset.
