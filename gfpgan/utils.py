@@ -6,8 +6,6 @@ from basicsr.utils.download_util import load_file_from_url
 from facexlib.utils.face_restoration_helper import FaceRestoreHelper
 from torchvision.transforms.functional import normalize
 
-from gfpgan.archs.gfpgan_bilinear_arch import GFPGANBilinear
-from gfpgan.archs.gfpganv1_arch import GFPGANv1
 from gfpgan.archs.gfpganv1_clean_arch import GFPGANv1Clean
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -24,7 +22,7 @@ class GFPGANer():
     Args:
         model_path (str): The path to the GFPGAN model. It can be urls (will first download it automatically).
         upscale (float): The upscale of the final output. Default: 2.
-        arch (str): The GFPGAN architecture. Option: clean | original. Default: clean.
+        arch (str): The GFPGAN architecture. Option: clean | RestoreFormer. Default: clean.
         channel_multiplier (int): Channel multiplier for large networks of StyleGAN2. Default: 2.
         bg_upsampler (nn.Module): The upsampler for the background. Default: None.
     """
@@ -48,41 +46,21 @@ class GFPGANer():
                 different_w=True,
                 narrow=1,
                 sft_half=True)
-        elif arch == 'bilinear':
-            self.gfpgan = GFPGANBilinear(
-                out_size=512,
-                num_style_feat=512,
-                channel_multiplier=channel_multiplier,
-                decoder_load_path=None,
-                fix_decoder=False,
-                num_mlp=8,
-                input_is_latent=True,
-                different_w=True,
-                narrow=1,
-                sft_half=True)
-        elif arch == 'original':
-            self.gfpgan = GFPGANv1(
-                out_size=512,
-                num_style_feat=512,
-                channel_multiplier=channel_multiplier,
-                decoder_load_path=None,
-                fix_decoder=True,
-                num_mlp=8,
-                input_is_latent=True,
-                different_w=True,
-                narrow=1,
-                sft_half=True)
         elif arch == 'RestoreFormer':
             from gfpgan.archs.restoreformer_arch import RestoreFormer
             self.gfpgan = RestoreFormer()
+        else:
+            raise ValueError(f'Unsupported arch {arch}. Option: clean | RestoreFormer.')
         # initialize face helper
+        # use_parse=False: ParseNet code and weights have non-commercial licenses.
+        # retinaface_resnet50 weights are trained on WIDER FACE (non-commercial); see LICENSE_CLEANUP.md.
         self.face_helper = FaceRestoreHelper(
             upscale,
             face_size=512,
             crop_ratio=(1, 1),
             det_model='retinaface_resnet50',
             save_ext='png',
-            use_parse=True,
+            use_parse=False,
             device=self.device,
             model_rootpath='gfpgan/weights')
 

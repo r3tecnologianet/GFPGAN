@@ -41,13 +41,6 @@ class FFHQDegradationDataset(data.Dataset):
         self.std = opt['std']
         self.out_size = opt['out_size']
 
-        self.crop_components = opt.get('crop_components', False)  # facial components
-        self.eye_enlarge_ratio = opt.get('eye_enlarge_ratio', 1)  # whether enlarge eye regions
-
-        if self.crop_components:
-            # load component list from a pre-process pth files
-            self.components_list = torch.load(opt.get('component_path'))
-
         # file client (lmdb io backend)
         if self.io_backend_opt['type'] == 'lmdb':
             self.io_backend_opt['db_paths'] = self.gt_folder
@@ -117,31 +110,6 @@ class FFHQDegradationDataset(data.Dataset):
                 img = adjust_hue(img, hue_factor)
         return img
 
-    def get_component_coordinates(self, index, status):
-        """Get facial component (left_eye, right_eye, mouth) coordinates from a pre-loaded pth file"""
-        components_bbox = self.components_list[f'{index:08d}']
-        if status[0]:  # hflip
-            # exchange right and left eye
-            tmp = components_bbox['left_eye']
-            components_bbox['left_eye'] = components_bbox['right_eye']
-            components_bbox['right_eye'] = tmp
-            # modify the width coordinate
-            components_bbox['left_eye'][0] = self.out_size - components_bbox['left_eye'][0]
-            components_bbox['right_eye'][0] = self.out_size - components_bbox['right_eye'][0]
-            components_bbox['mouth'][0] = self.out_size - components_bbox['mouth'][0]
-
-        # get coordinates
-        locations = []
-        for part in ['left_eye', 'right_eye', 'mouth']:
-            mean = components_bbox[part][0:2]
-            half_len = components_bbox[part][2]
-            if 'eye' in part:
-                half_len *= self.eye_enlarge_ratio
-            loc = np.hstack((mean - half_len + 1, mean + half_len))
-            loc = torch.from_numpy(loc).float()
-            locations.append(loc)
-        return locations
-
     def __getitem__(self, index):
         if self.file_client is None:
             self.file_client = FileClient(self.io_backend_opt.pop('type'), **self.io_backend_opt)
@@ -153,13 +121,8 @@ class FFHQDegradationDataset(data.Dataset):
         img_gt = imfrombytes(img_bytes, float32=True)
 
         # random horizontal flip
-        img_gt, status = augment(img_gt, hflip=self.opt['use_hflip'], rotation=False, return_status=True)
+        img_gt = augment(img_gt, hflip=self.opt['use_hflip'], rotation=False)
         h, w, _ = img_gt.shape
-
-        # get facial component coordinates
-        if self.crop_components:
-            locations = self.get_component_coordinates(index, status)
-            loc_left_eye, loc_right_eye, loc_mouth = locations
 
         # ------------------------ generate lq image ------------------------ #
         # blur
@@ -213,18 +176,7 @@ class FFHQDegradationDataset(data.Dataset):
         normalize(img_gt, self.mean, self.std, inplace=True)
         normalize(img_lq, self.mean, self.std, inplace=True)
 
-        if self.crop_components:
-            return_dict = {
-                'lq': img_lq,
-                'gt': img_gt,
-                'gt_path': gt_path,
-                'loc_left_eye': loc_left_eye,
-                'loc_right_eye': loc_right_eye,
-                'loc_mouth': loc_mouth
-            }
-            return return_dict
-        else:
-            return {'lq': img_lq, 'gt': img_gt, 'gt_path': gt_path}
+        return {'lq': img_lq, 'gt': img_gt, 'gt_path': gt_path}
 
     def __len__(self):
         return len(self.paths)

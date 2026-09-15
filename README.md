@@ -2,6 +2,8 @@
   <img src="assets/gfpgan_logo.png" height=130>
 </p>
 
+> **License cleanup branch.** Components with non-commercial restrictions (NVIDIA StyleGAN2 CUDA ops, DFDNet-derived code, ParseNet, Real-ESRGAN background upsampling, release weights, face images and training configs) were removed or disabled. The rest of this README still describes upstream GFPGAN. See [LICENSE_CLEANUP.md](LICENSE_CLEANUP.md) for what was removed, what remains and what must be rewritten or retrained.
+
 ## <div align="center"><b><a href="README.md">English</a> | <a href="README_CN.md">简体中文</a></b></div>
 
 <div align="center">

@@ -1,6 +1,6 @@
 name: UnitTest
 type: FFHQDegradationDataset
-dataroot_gt: tests/data/gt
+dataroot_gt: ~  # set by the test
 io_backend:
   type: disk
 
