@@ -1,8 +1,13 @@
 # Training config using only components without commercial-use restrictions (see LICENSE_CLEANUP.md):
 # - GFPGANv1Clean generator, trained without a pretrained StyleGAN2 prior (no licensed prior exists yet)
-# - StyleGAN2DiscriminatorClean and FacialComponentDiscriminatorClean (pure PyTorch)
+# - StyleGAN2DiscriminatorClean (pure PyTorch)
 # - discriminator feature matching instead of the VGG19/ImageNet perceptual loss
 # - no identity loss (no face recognition model trained on licensed data)
+# The training settings are the stable configuration from docs/training_stability.md (base 11): 5000+ consecutive
+# iterations without NaN, loss spikes or discriminator score blow-ups, on one GPU with batch 2.
+# The facial component discriminators (FacialComponentDiscriminatorClean) are disabled: they were the first source
+# of instability and have not been re-tested on the stable settings. To re-enable them, add network_d_left_eye,
+# network_d_right_eye and network_d_mouth with that type.
 # The dataset paths are placeholders: use aligned 512x512 faces you are licensed to train on, and build the
 # component boxes with scripts/generate_component_boxes.py.
 
@@ -40,14 +45,14 @@ datasets:
     color_jitter_pt_prob: 0.3
     gray_prob: 0.01
 
-    # facial component boxes from scripts/generate_component_boxes.py
+    # facial component boxes from scripts/generate_component_boxes.py (used by the facial component discriminators)
     crop_components: true
     component_path: datasets/licensed_faces/component_boxes.pth
 
     # data loader
     use_shuffle: true
-    num_worker_per_gpu: 6
-    batch_size_per_gpu: 3
+    num_worker_per_gpu: 4
+    batch_size_per_gpu: 2
     dataset_enlarge_ratio: 1
     prefetch_mode: ~
 
@@ -81,36 +86,25 @@ network_d:
   out_size: 512
   channel_multiplier: 1
 
-network_d_left_eye:
-  type: FacialComponentDiscriminatorClean
-
-network_d_right_eye:
-  type: FacialComponentDiscriminatorClean
-
-network_d_mouth:
-  type: FacialComponentDiscriminatorClean
-
 # path
 path:
   pretrain_network_g: ~
   param_key_g: params_ema
   strict_load_g: ~
   pretrain_network_d: ~
-  pretrain_network_d_left_eye: ~
-  pretrain_network_d_right_eye: ~
-  pretrain_network_d_mouth: ~
   resume_state: ~
 
 # training settings
 train:
-  # 2e-4 instead of the upstream 2e-3: without a pretrained prior, GFPGANv1Clean and the clean discriminators
-  # diverged to NaN within 4 iterations at 2e-3 in a smoke run, and were stable at 2e-4
+  # Without a pretrained prior, larger steps destabilize training: the upstream 2e-3 diverged to NaN within
+  # 4 iterations, and generator lr 1e-4 and 5e-5 still had recurring discriminator-led loss spikes
+  # (docs/training_stability.md)
   optim_g:
     type: Adam
-    lr: !!float 2e-4
+    lr: !!float 2.5e-5
   optim_d:
     type: Adam
-    lr: !!float 2e-4
+    lr: !!float 2e-5
   optim_component:
     type: Adam
     lr: !!float 2e-4
@@ -122,6 +116,9 @@ train:
 
   total_iter: 800000
   warmup_iter: -1  # no warm up
+
+  # clip the generator gradient norm (logged as g_grad_norm before clipping)
+  generator_grad_clip: 10
 
   # losses
   # pixel loss
@@ -144,21 +141,21 @@ train:
   gan_opt:
     type: GANLoss
     gan_type: wgan_softplus
-    loss_weight: !!float 1e-1
+    loss_weight: !!float 5e-2
   # r1 regularization for discriminator
   r1_reg_weight: 10
-  # facial component loss
+  # facial component loss (only used when the facial component discriminators are enabled)
   gan_component_opt:
     type: GANLoss
     gan_type: vanilla
     real_label_val: 1.0
     fake_label_val: 0.0
     loss_weight: !!float 1
-  comp_style_weight: 200
+  comp_style_weight: 0
 
   net_d_iters: 1
   net_d_init_iters: 0
-  net_d_reg_every: 16
+  net_d_reg_every: 4
 
 # validation settings
 val:

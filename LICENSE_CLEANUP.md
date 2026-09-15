@@ -11,9 +11,9 @@ Branch `license-cleanup`, based on `7552a77` (TencentARC/GFPGAN). Goal: remove o
 | Discriminators with NVIDIA kernels | Resolved | `66b7c3c` | `StyleGAN2DiscriminatorClean`, `FacialComponentDiscriminatorClean` (standard PyTorch ops) |
 | Perceptual loss with VGG19/ImageNet | Resolved | `eb87dfa` | Discriminator feature matching (`feature_matching_weight`) |
 | Facial component boxes derived from DFDNet / FFHQ landmarks | Resolved | `c68aed2` | Box rule over MediaPipe Face Mesh V2 contours; `scripts/generate_component_boxes.py` |
-| Training configs | Resolved | `0c12b14` | `options/train_gfpgan_clean.yml`; smoke-tested only (see Verification) |
+| Training configs | Resolved | `0c12b14` | `options/train_gfpgan_clean.yml`; training settings shown stable over 5000+ iterations on 617 public-domain faces (`docs/training_stability.md`); the facial component discriminators are disabled |
 | Identity loss (ArcFace) | Open | — | Disabled; needs a face recognition model trained on licensed data |
-| No pretrained generative prior | Open | — | The config trains GFPGANv1Clean from scratch (`decoder_load_path: ~`) at learning rate 2e-4; a StyleGAN2 prior trained on licensed data does not exist |
+| No pretrained generative prior | Open | — | The config trains GFPGANv1Clean from scratch (`decoder_load_path: ~`) at generator learning rate 2.5e-5; a StyleGAN2 prior trained on licensed data does not exist |
 | Weights | Open | — | All release weights are trained on FFHQ. Retraining needs a licensed face dataset, which does not exist; not attempted |
 
 ## Removed
@@ -48,7 +48,7 @@ Branch `license-cleanup`, based on `7552a77` (TencentARC/GFPGAN). Goal: remove o
 | File | Change |
 |---|---|
 | `gfpgan/utils.py` | Uses `gfpgan.face_helper.FaceHelper`; only `clean` and `RestoreFormer` architectures; `det_model` option |
-| `gfpgan/models/gfpgan_model.py` | Optional discriminator feature matching loss (`feature_matching_weight`) |
+| `gfpgan/models/gfpgan_model.py` | Optional discriminator feature matching loss (`feature_matching_weight`); optional generator gradient norm clipping (`generator_grad_clip`, logs `g_grad_norm`) |
 | `gfpgan/data/ffhq_degradation_dataset.py` | `crop_components` reads boxes from `component_path` and flips them with the image. JPEG quality is sampled as an integer: basicsr 1.4.2 `random_add_jpg_compression` passes a float that current OpenCV rejects (the upstream test at `7552a77` fails the same way) |
 | `inference_gfpgan.py` | No automatic weight download; `--model_path` is required; no Real-ESRGAN |
 | `requirements.txt`, `setup.cfg` | `facexlib` replaced by `mediapipe` |

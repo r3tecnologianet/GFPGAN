@@ -236,7 +236,7 @@ New base (base 11): base 10 with generator lr 2.5e-5. Run 06 trains base 11 for 
 
 | Run | Change from previous | Settings | Result |
 |---|---|---|---|
-| 06 | base 11 for 10,000 iterations | base 11 (seed 0) | **Stable.** At iteration 6070: no NaN, no \|score\| ≥ 100 (max \|fake_score\| 18.9, max \|real_score\| 7.8), one generator spike at 350 (G total 1.15 against a median of 0.11), no PSNR drop > 1 dB (largest drop between validations 0.18 dB); clean streak 5720 iterations (351–6070); generator gradient norm median 4.3, max 83; max pixel loss 0.078 |
+| 06 | base 11 for 10,000 iterations | base 11 (seed 0) | **Stable.** 10,000 iterations: no NaN, no \|score\| ≥ 100 (max \|fake_score\| 18.9, max \|real_score\| 7.8), one generator spike at 350 (G total 1.15 against a median of 0.11), no PSNR drop > 1 dB (largest drop between validations 0.18 dB); clean streak 9650 iterations (351–10,000); generator gradient norm median 3.8, max 83; max pixel loss 0.078; PSNR 11.61 → 25.16 dB at 3750, 24.29 at 6750, 24.51 at 10,000 |
 
 ## Stable configuration
 
@@ -249,6 +249,8 @@ Base 11 meets the criterion: `options/train_gfpgan_clean.yml` with
 - batch 2 on one GPU, seed 0.
 
 Open issues:
-- Validation PSNR peaks at 25.16 dB at iteration 3750 and then declines slowly (24.39 dB at 6000), without any drop above 1 dB. With 617 training faces this is consistent with overfitting; the criterion does not cover it.
+- Validation PSNR peaks at 25.16 dB at iteration 3750, declines to 24.29 dB at 6750 and partly recovers to 24.51 dB at 10,000, without any drop above 1 dB between validations. With 617 training faces this is consistent with overfitting; the criterion does not cover it.
+
+`options/train_gfpgan_clean.yml` now uses these settings, with batch 2 and 4 data workers per GPU as in run 06.
 - The facial component losses of GFP-GAN are disabled. They were the first source of instability and have not been re-tested on the stable base.
 - Stability was shown for one seed and one small dataset.

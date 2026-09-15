@@ -14,9 +14,9 @@ def test_train_gfpgan_clean_config():
         text = f.read()
     opt = yaml.safe_load(text)
 
-    # only clean, registered components
+    # only clean, registered components; the facial component discriminators are optional
     network_types = {v['type'] for k, v in opt.items() if k.startswith('network')}
-    assert network_types == CLEAN_ARCHS
+    assert {'GFPGANv1Clean', 'StyleGAN2DiscriminatorClean'} <= network_types <= CLEAN_ARCHS
     for arch in network_types:
         ARCH_REGISTRY.get(arch)
     MODEL_REGISTRY.get(opt['model_type'])
@@ -27,4 +27,5 @@ def test_train_gfpgan_clean_config():
         assert key not in text, key
     assert opt['network_g']['decoder_load_path'] is None
     assert opt['train']['feature_matching_weight'] > 0
-    assert opt['datasets']['train']['crop_components'] is True
+    if 'FacialComponentDiscriminatorClean' in network_types:
+        assert opt['datasets']['train']['crop_components'] is True
