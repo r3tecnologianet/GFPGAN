@@ -224,3 +224,12 @@ Run 05 has half the spikes of run 04 over the same length and no generator outpu
 ### Screening round 11 at 3000 iterations, one factor changed from base 10
 
 Factors: generator lr 2.5e-5 (continues the only trend that removed episodes); R1 weight 50 (stronger penalty against discriminator overconfidence; the round 4 test at 50 was confounded by the facial component path); global discriminator lr 1e-5 (tested on base 09 in round 10, now on the smaller generator step).
+
+| Variant | NaN/inf | G spikes | \|score\| ≥ 100 | PSNR (dB) | Max generator gradient norm | Longest clean streak | Verdict |
+|---|---|---|---|---|---|---|---|
+| Base 10 (run 05, iterations 1–3000) | 0 | 17, 471–2884 | 1, at 1014 | 12.22 → 25.32 | 206 | 915 (1626–2540) | Reference |
+| Generator lr 2.5e-5 | 0 | 0 | 0 | 11.50 → 24.96, rising more slowly | 91 | 3000 (the whole run) | First run without any violation. PSNR at 3000 is 0.36 dB lower than base 10: slower learning, still rising |
+| R1 weight 50 | — | — | — | — | — | — | Stopped after 41 iterations to start the long run of generator lr 2.5e-5 |
+| Global discriminator lr 1e-5 | — | — | — | — | — | — | Not run, for the same reason |
+
+New base (base 11): base 10 with generator lr 2.5e-5. Run 06 trains base 11 for 10,000 iterations against the 5000-iteration criterion.
