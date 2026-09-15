@@ -139,3 +139,24 @@ Factors: component GAN loss weight 0.1; component discriminator lr 5e-5; no faci
 | No facial component discriminators | 0 | 22, 708–1500 | 4, all at 710–720 (min fake_score −527) | 12.37 → 24.02, rising | 1.8e3 | 707 (1–707) | Best: one episode at 708–720, highest PSNR, smallest gradients. Without component losses the generator loss median is 0.11–0.12, so the 10x spike threshold is very strict |
 
 New base (base 07): base 06 without the facial component discriminators. This removes GFP-GAN's facial component losses from training; they are to be revisited once the global path is stable.
+
+Spike composition on base 07 (no component discriminators): medians pixel 0.014, feature matching 0.039, global GAN 0.070. Every spike is a global-path event: the global discriminator suddenly becomes confident on restored images (fake_score −527 at 710, −398 at 719) while real_score drifts up (to 6.5), and the generator feature matching (up to 63), global GAN (up to 53) and pixel (up to 12) losses jump together, with gradient norms up to 1.8e3. After 720 only small spikes remain (fake_score −5 to −34).
+
+### Screening round 8 at 1500 iterations, one factor changed from base 07
+
+Factors on the global path: feature matching weight 0.1; R1 every 4 iterations (repeated without the component explosion that confounded round 1); global GAN loss weight 0.05.
+
+| Variant | NaN/inf | G spikes | \|score\| ≥ 100 | PSNR (dB) | Max generator gradient norm | Longest clean streak | Verdict |
+|---|---|---|---|---|---|---|---|
+| Base 07 (no component discriminators, from round 7) | 0 | 22 | 4, 710–720 | 24.02 | 1.8e3 | 707 | Reference |
+| `feature_matching_weight: 0.1` | 0 | 15, 680–1499 | 5, 682–687 (min fake_score −910) | 12.25 → 23.88, rising | 1.9e3 | 799 (700–1498) | Slightly better; the generator loss median drops to 0.085, so the 10x spike threshold is 0.85 |
+| R1 every 4 iterations | 0 | 12, 595–1429 | 5, 597–604 (min fake_score −225) | 12.52 → 24.37, rising | 663 | 823 (606–1428) | Best so far: fewest spikes, shortest episode, smallest gradients, highest PSNR. Stronger R1 on the global discriminator helps once the component explosion is gone (round 1 was confounded) |
+| Global GAN loss weight 0.05 | 0 | 22, all at 586–621 | 8, 586–610 (min fake_score −756) | 12.51 → 24.49, rising | 8.3e4 | 879 (622–1500, to the end) | Also better: one sharper episode, then clean to the end |
+
+New base (base 08): base 07 with R1 every 4 iterations (fewest total violations, 17 against 30, and 100x smaller gradients than global GAN weight 0.05, which is tested on top of it next).
+
+Every variant of rounds 7 and 8 has its episode in the same range, iterations 580–720. With 617 training faces and batch 2, one epoch is about 308 iterations, and all runs use seed 0, hence the same batch order. Hypothesis: a specific batch around iteration 600 triggers the episode. Round 9 changes only the seed to test it.
+
+### Screening round 9 at 1500 iterations, one factor changed from base 08
+
+Factors: global GAN loss weight 0.05; feature matching weight 0.1; `manual_seed: 1` (different data order, to test the batch hypothesis).
