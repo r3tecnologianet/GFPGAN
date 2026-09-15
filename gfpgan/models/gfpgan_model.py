@@ -339,8 +339,21 @@ class GFPGANModel(BaseModel):
                     l_g_total += l_g_style
                     loss_dict['l_g_style'] = l_g_style
 
-            # gan loss
-            fake_g_pred = self.net_d(self.output)
+            # gan loss, with optional discriminator feature matching loss (replacement for the perceptual loss):
+            # sum over discriminator blocks of the mean L1 distance between real and restored features
+            feature_matching_weight = self.opt['train'].get('feature_matching_weight', 0)
+            if feature_matching_weight > 0:
+                fake_g_pred, fake_feats = self.net_d(self.output, return_feats=True)
+                with torch.no_grad():
+                    _, real_feats = self.net_d(self.gt, return_feats=True)
+                l_g_fm = 0
+                for fake_feat, real_feat in zip(fake_feats, real_feats):
+                    l_g_fm += F.l1_loss(fake_feat, real_feat)
+                l_g_fm = l_g_fm * feature_matching_weight
+                l_g_total += l_g_fm
+                loss_dict['l_g_fm'] = l_g_fm
+            else:
+                fake_g_pred = self.net_d(self.output)
             l_g_gan = self.cri_gan(fake_g_pred, True, is_disc=False)
             l_g_total += l_g_gan
             loss_dict['l_g_gan'] = l_g_gan
