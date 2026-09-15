@@ -185,3 +185,13 @@ After the reboot the kernel module and user space are both 580.173.02, the NVIDI
 The seed changes both the data order and the initialization. With seed 1 the episodes move to 474, 825 and 1069, so they are not tied to one batch around iteration 600. The global discriminator confidence episodes are intrinsic to the setup, and their number varies strongly between seeds, so base 09's single episode with seed 0 is partly luck.
 
 Base 09 stays the best configuration. Run 04 trains it for 5000 iterations to see whether the episodes stop once the generator has learned the coarse structure (in base 09 and seed 1 the last 431–788 iterations were clean).
+
+| Run | Change from previous | Settings | Result |
+|---|---|---|---|
+| 04 | base 09 for 5000 iterations | base 09 (seed 0) | Not stable: no NaN, 60 generator spikes, 10 score violations (last at 4079), no PSNR drop > 1 dB; PSNR 12.57 → 25.45 dB at 4000, then 25.27 at 5000; generator gradient norm median 2.85, max 2.5e5; longest clean streak 1182 (2890–4071) |
+
+Episodes do not stop with training; they recur every 500–1500 iterations. The first one came at 816, against 699 in the base 09 screen with the same config and seed, so training on the GPU is not deterministic.
+
+Two kinds of events show up in the per-iteration losses of run 04 and the round 9 screens:
+- Discriminator-led episodes: fake_score drifts to −20 to −60 for a few iterations before the generator losses jump (816–819 in run 04, 480 and 825–831 with seed 1). Most events are of this kind.
+- Single-iteration generator output explosions: at 2880 in run 04 the pixel loss goes from 0.02 to 914 (fake_score −8.3e4, gradient norm 2.5e5) and is back to normal at the next iteration, with fake_score −0.7 just before; iteration 1441 of the feature matching 0.1 screen is similar (pixel loss 27). Weights change very little in one Adam step, so these point at specific degraded inputs. The generator has two unbounded paths: the SFT modulation (`out * scale + shift`, scale from an unconstrained convolution) and the RGB output.
