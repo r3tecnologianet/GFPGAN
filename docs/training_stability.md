@@ -268,6 +268,10 @@ Both lower-pressure variants are free of violations. The PSNR cost against base 
 
 New base (base 12): base 11 with the three facial component discriminators at component discriminator lr 2.5e-5 (component GAN loss weight 1, component style weight 0). It keeps the upstream component loss weight and has the higher, still rising PSNR. Run 07 trains base 12 for 10,000 iterations against the 5000-iteration criterion.
 
+| Run | Change from previous | Settings | Result |
+|---|---|---|---|
+| 07 | base 12 for 10,000 iterations | base 12 (seed 0) | **Stable.** 10,000 iterations with no violation at all (no NaN, no generator spike, no \|score\| ≥ 100, no PSNR drop > 1 dB); clean streak 10,000, the only run clean from the first iteration. Validation PSNR 11.51 → 24.50 dB at 3250, then 23.37 at 10,000 |
+
 ## Evaluation metrics
 
 PSNR measures pixel fidelity and favors smooth outputs; it does not measure what the GAN and facial component losses are for (realistic detail), and 32 validation images make differences of a few tenths of a dB noise. In the stability criterion PSNR only detects collapse. Checkpoints are also evaluated with metrics that need no weights with commercial-use restrictions (LPIPS, FID and identity distance rely on ImageNet or ArcFace networks and are not used), by an evaluation script kept outside the repository:
@@ -275,6 +279,27 @@ PSNR measures pixel fidelity and favors smooth outputs; it does not measure what
 - landmark distance (LMD): mean distance in pixels between the 478 MediaPipe Face Mesh landmarks of the output and of the ground truth, over the outputs where a face is found (failures are counted separately);
 - NIQE (BasicSR implementation, no reference; lower is better).
 
-References on the 32 validation pairs: the degraded inputs have PSNR 24.90 dB, component PSNR 23.54 dB, LMD 8.50 px (no face found in 6 of 32) and NIQE 12.80; the ground truth has NIQE 5.68. Run 06 at iteration 3000 (EMA weights) has PSNR 25.01 dB, component PSNR 23.58 dB, LMD 9.52 px (4 failures) and NIQE 11.19. Its validation PSNR is therefore only 0.1 dB above the degraded input: after 3000 iterations on 617 faces the generator mainly reproduces its input, with some gain in NIQE.
+References on the 32 validation pairs: the degraded inputs have PSNR 24.90 dB, component PSNR 23.54 dB, LMD 8.50 px (no face found in 6 of 32) and NIQE 12.80; the ground truth has NIQE 5.68.
+
+| Run | Iteration | PSNR (dB) | Component PSNR (dB) | LMD (px) | LMD failures | NIQE |
+|---|---|---|---|---|---|---|
+| 06 (base 11) | 1000 | 21.42 | 20.69 | 11.95 | 7 | 12.87 |
+| 06 | 3000 | 25.01 | 23.58 | 9.52 | 4 | 11.19 |
+| 06 | 4000 | 25.10 | 23.30 | 7.65 | 5 | 10.56 |
+| 06 | 6000 | 24.39 | 22.10 | 7.99 | 6 | 8.54 |
+| 06 | 8000 | 24.36 | 22.17 | 9.28 | 4 | 6.96 |
+| 06 | 10,000 | 24.51 | 22.33 | 6.83 | 4 | **6.38** |
+| 07 (base 12) | 1000 | 15.78 | 15.23 | 12.86 | 30 | 16.28 |
+| 07 | 3000 | 24.32 | 22.69 | 9.00 | 5 | 10.97 |
+| 07 | 5000 | 23.77 | 20.26 | 9.99 | 5 | 8.82 |
+| 07 | 8000 | 23.04 | 20.84 | 8.13 | 7 | 9.82 |
+| 07 | 10,000 | 23.37 | 20.90 | 12.20 | 7 | 9.94 |
+
+Reading:
+- PSNR peaks early (4000 in run 06) and then falls while NIQE keeps improving, from 12.87 to 6.38, close to the 5.68 of the ground truth. PSNR gives the wrong signal here: the generator is replacing blur with texture. Base 11 also ends below the degraded input on PSNR (24.51 against 24.90) while being much closer to it on NIQE and better on LMD (6.83 against 8.50).
+- Base 12 (facial component discriminators at lr 2.5e-5) is stable but worse on every quality metric: NIQE bottoms at 8.82 at 5000 and rises again to 9.94, and component PSNR, the region those discriminators target, stays 1.4–2.4 dB below base 11 from iteration 4000 on. On this dataset they cost quality instead of adding detail.
+- LMD failures (3–11 of 32, and 30 at run 07 iteration 1000) make LMD comparisons weak: the mean is taken over the images where MediaPipe finds a face.
+
+Conclusion: `options/train_gfpgan_clean.yml` keeps base 11, without the facial component discriminators. They train stably at component discriminator lr 2.5e-5 (run 07 has no violation in 10,000 iterations) and can be re-enabled, but they need a larger dataset and a quality benchmark before they earn a place in the default config.
 - The facial component losses of GFP-GAN are disabled. They were the first source of instability and have not been re-tested on the stable base.
 - Stability was shown for one seed and one small dataset.
