@@ -113,3 +113,14 @@ Run 03 diagnosis: both episodes start in the facial component path. At 390–395
 The component discriminator update, inherited from upstream GFPGAN, adds the real term with the component GAN loss (vanilla, weight 1) and the fake term with the global GAN loss (`cri_gan`: wgan_softplus, weight 0.1). The local discriminators therefore receive a 10x weaker penalty of a different kind on restored patches than on real patches, which is consistent with them suddenly winning.
 
 ### Screening round 6 at 1500 iterations, one factor changed from base 05
+
+| Variant | NaN/inf | G spikes | \|score\| ≥ 100 | PSNR (dB) | Max generator gradient norm | Longest clean streak | Verdict |
+|---|---|---|---|---|---|---|---|
+| Base 05 (generator lr 1e-4 row of round 5) | 0 | 30 | 4 | 21.66 | 3.9e6 | 786 | Reference |
+| `component_d_fake_loss: component` (fake term with the component GAN loss) | 0 | 37, 585–1349 | 7, 63–1343 | 11.69 → 21.60, rising | 1.4e10 | 712 (613–1324) | No improvement; option not kept |
+| `comp_style_weight: 0` | 0 | 17, 206–1405, magnitude 25–129 | 3, all at 46–70 | 11.68 → 22.04, rising | 5.0e5 | 614 (740–1353) | Better: half the spikes and much smaller, no score violation after iteration 70, highest PSNR. The component Gram style loss is the main source of the exploding gradients |
+| Component GAN loss weight 0.1 | 0 | 46, 770–1441 (one of 5.1e6 at 770) | 10, 770–1420 (min fake_score −6.1e4) | 12.45 → 23.19, rising | 1.3e8 | 769 (1–769) | Highest PSNR, but one explosion at 770; the lower generator loss median (0.33) also makes the 10x spike threshold stricter |
+
+New base (base 06): base 05 with `comp_style_weight: 0` (no component Gram style loss); it had the smallest and fewest spikes and no score violation after iteration 70.
+
+Runs with the same settings vary: run 03 (base 05) already had 33 spikes at iteration 1091, against 30 in 1500 iterations for the base 05 screen. Single 1500-iteration screens cannot separate small differences.
