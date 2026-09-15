@@ -205,3 +205,8 @@ Longer screens, because run 04 shows that 1500 iterations often end before the s
 | Variant | NaN/inf | G spikes | \|score\| ≥ 100 | PSNR (dB) | Max generator gradient norm | Longest clean streak | Verdict |
 |---|---|---|---|---|---|---|---|
 | Base 09 (run 04, iterations 1–3000) | 0 | 44, 816–2889 | 8, 817–2883 (min fake_score −8.3e4) | 12.57 → 25.28, then 25.26 | 2.5e5 | 815 (1–815) | Reference |
+| Generator lr 5e-5 | 0 | 1, at 2619 (G total 3.0) | 0 | 12.05 → 25.41, rising | 107 | 2618 (1–2618); clean from 2620 to the end (381) | Best of all runs: one small isolated spike, no score violation, gradient norm 2000x smaller, PSNR not lower |
+| Global discriminator lr 1e-5 | 0 | 32, 913–2691 | 4, at 913–916 and 2676–2678 (min fake_score −696) | 12.52 → 25.41 | 1.9e3 | 1018 (1644–2661) | Slightly better than the reference (fewer spikes and score violations), far behind generator lr 5e-5 |
+| Global GAN loss weight 0.02 | 0 | 35, 586–2685 | 5, at 587–594 and 2172 (min fake_score −612) | 12.65 → 25.44 | 990 | 680 (818–1497) | Slightly better than the reference, far behind generator lr 5e-5 |
+
+New base (base 10): base 09 with generator lr 5e-5 (generator 5e-5, global discriminator 2e-5, gradient clipping 10, no facial component discriminators, feature matching 1.0, global GAN weight 0.05, R1 weight 10 every 4 iterations, batch 2, seed 0). Lowering the generator step size is the only factor that removes the episodes instead of thinning them, consistent with the Adam step explanation above. Run 05 trains base 10 for 10,000 iterations against the 5000-iteration criterion.
