@@ -26,5 +26,5 @@ jobs:
       run: |
         codespell
         flake8 .
-        isort --check-only --diff gfpgan/ inference_gfpgan.py setup.py
-        yapf -r -d gfpgan/ inference_gfpgan.py setup.py
+        isort --check-only --diff gfpgan/ scripts/ inference_gfpgan.py setup.py
+        yapf -r -d gfpgan/ scripts/ inference_gfpgan.py setup.py
