@@ -46,9 +46,9 @@ A config `name` containing `debug` makes BasicSR log every iteration and validat
 Tests (`setup.cfg` sets `addopts=tests/`, so plain `pytest` runs everything; tests use CUDA when available):
 ```bash
 pytest
-pytest tests/test_face_helper.py::test_face_helper_align_and_paste   # single test
+pytest -o addopts="" tests/test_face_helper.py::test_face_helper_align_and_paste   # single test; addopts=tests/ would also run the whole folder
 ```
-The MediaPipe tests download their models on first run.
+The MediaPipe tests download their models into `gfpgan/weights/` on first run and reuse them afterwards.
 
 Lint (matches CI in `.github/workflows/pylint.yml`; line length 120, single quotes enforced by pre-commit):
 ```bash

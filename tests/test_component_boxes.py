@@ -31,7 +31,7 @@ def test_component_boxes_and_flip():
     assert flip_component_boxes(flipped, 512) == boxes
 
 
-def test_face_mesh_landmarker_blank_image(tmp_path):
+def test_face_mesh_landmarker_blank_image():
     pytest.importorskip('mediapipe')
     from gfpgan.component_boxes import FaceMeshLandmarker, contour_indices
 
@@ -39,6 +39,6 @@ def test_face_mesh_landmarker_blank_image(tmp_path):
     assert set(indices) == {'left_eye', 'right_eye', 'mouth'}
     assert all(len(v) > 0 for v in indices.values())
 
-    landmarker = FaceMeshLandmarker(model_rootpath=str(tmp_path))
+    landmarker = FaceMeshLandmarker(model_rootpath='gfpgan/weights')  # reuse the downloaded model
     assert landmarker.detect(np.zeros((512, 512, 3), np.uint8)) is None
     landmarker.close()

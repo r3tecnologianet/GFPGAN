@@ -46,11 +46,11 @@ def test_face_helper_align_and_paste():
     assert out.dtype == np.uint8
 
 
-def test_mediapipe_detector_blank_image(tmp_path):
+def test_mediapipe_detector_blank_image():
     pytest.importorskip('mediapipe')
     from gfpgan.face_helper import MediaPipeFaceDetector
 
-    detector = MediaPipeFaceDetector(model_rootpath=str(tmp_path))
+    detector = MediaPipeFaceDetector(model_rootpath='gfpgan/weights')  # reuse the downloaded model
     boxes, scores, keypoints = detector.detect(np.zeros((480, 640, 3), np.uint8))
     detector.close()
     assert boxes.shape == (0, 4)
