@@ -160,3 +160,16 @@ Every variant of rounds 7 and 8 has its episode in the same range, iterations 58
 ### Screening round 9 at 1500 iterations, one factor changed from base 08
 
 Factors: global GAN loss weight 0.05; feature matching weight 0.1; `manual_seed: 1` (different data order, to test the batch hypothesis).
+
+| Variant | NaN/inf | G spikes | \|score\| ≥ 100 | PSNR (dB) | Max generator gradient norm | Longest clean streak | Verdict |
+|---|---|---|---|---|---|---|---|
+| Base 08 (R1 every 4 iterations, from round 8) | 0 | 12, 595–1429 | 5, 597–604 | 24.37 | 663 | 823 | Reference |
+| Global GAN loss weight 0.05 | 0 | 6, all at 699–712 (largest 15) | 1, at 706 (fake_score −143) | 12.48 → 24.64, rising | 367 | 788 (713–1500, to the end) | Best of all runs: one weak 13-iteration episode, then clean to the end |
+| Feature matching weight 0.1 | — | — | — | — | — | — | Not run: CUDA unavailable (see below) |
+| `manual_seed: 1` | — | — | — | — | — | — | Not run: CUDA unavailable (see below) |
+
+New base (base 09): base 08 with global GAN loss weight 0.05. Its episode again falls in the 580–720 range, consistent with the batch hypothesis, which the seed variant was going to test.
+
+**Interruption.** At 2026-09-15 07:02:45, `unattended-upgrade` upgraded the NVIDIA user-space packages from 580.159.03 to 580.173.02 while the loaded kernel module stayed at 580.159.03. From then on every new process fails CUDA initialization (`cudaGetDeviceCount()` error 804, `nvidia-smi`: "Driver/library version mismatch"), so the last two round 9 variants failed before their first iteration. Training resumes after a reboot (or a reload of the NVIDIA kernel module).
+
+Next steps once the GPU is back: run the two pending round 9 variants on base 09 (feature matching 0.1, seed 1), then a 5000-iteration run of the best base.
