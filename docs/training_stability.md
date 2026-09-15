@@ -29,6 +29,16 @@ The check is applied to the training log by an analysis script (kept outside the
 
 **Dataset change after run 07.** The 617 faces come from PD12M, whose detected faces are mostly not usable as clean ground truth: engravings, half-tone prints, damaged scans and blurred images. Hand labels made by the OpenGFPGAN project rate 104 of 395 crops as usable (26%). Automatic quality signals do not find them: measured against those labels, NIQE has AUC 0.535 and Laplacian sharpness 0.459, both at chance, matching that project's own measurement of sharpness (0.446) and halftone (0.532). With no working automatic filter, further stability work uses an already curated aligned face dataset (FFHQ at 512x512), and the licensed corpus is revisited afterwards.
 
+| Item | Value |
+|---|---|
+| Source | `Ryan-sjtu/ffhq512-caption` on Hugging Face, 8 of 54 parquet shards (3.8 GiB) |
+| Faces | 10,000 aligned 512x512 images, none discarded |
+| Component boxes | 9991 of 10,000; the 9 images without a detected face are dropped from the splits |
+| Split | 9927 training, 64 validation (random, seed 0); validation inputs degraded once with the training degradation ranges (seed 0) |
+| Location | `/mnt/dados/gfpgan-clean/ffhq512` (not in the repository) |
+
+FFHQ is used here because it is aligned and curated, which is what the stability runs need. It carries its own licence terms and is not a licensed corpus for release; the clean-room data question is separate and stays open.
+
 ## Environment
 
 Python 3.11.16, torch 2.1.2+cu121, basicsr 1.4.2, mediapipe 0.10.14, NVIDIA GeForce RTX 3060 Ti (8 GB).
