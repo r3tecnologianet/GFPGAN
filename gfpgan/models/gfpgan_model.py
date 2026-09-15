@@ -410,6 +410,10 @@ class GFPGANModel(BaseModel):
                 loss_dict['l_identity'] = l_identity
 
             l_g_total.backward()
+            generator_grad_clip = self.opt['train'].get('generator_grad_clip', 0)
+            if generator_grad_clip > 0:
+                grad_norm = torch.nn.utils.clip_grad_norm_(self.net_g.parameters(), generator_grad_clip)
+                loss_dict['g_grad_norm'] = grad_norm.detach()
             self.optimizer_g.step()
 
         # EMA

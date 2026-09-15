@@ -105,3 +105,13 @@ def test_gfpgan_model_feature_matching():
     model.optimize_parameters(current_iter=1)
     assert 'l_g_fm' not in model.log_dict
     assert 'l_g_gan' in model.log_dict
+    assert 'g_grad_norm' not in model.log_dict
+
+    # ------------------ with generator gradient clipping -------------------- #
+    opt = _get_opt(feature_matching_weight=1.0)
+    opt['train']['generator_grad_clip'] = 1.0
+    model = GFPGANModel(opt)
+    model.feed_data(data)
+    model.optimize_parameters(current_iter=1)
+    assert 'g_grad_norm' in model.log_dict
+    assert torch.isfinite(torch.tensor(model.log_dict['g_grad_norm']))
