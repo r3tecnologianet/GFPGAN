@@ -62,4 +62,22 @@ Decision: run 02 is run 01 with `generator_grad_clip: 10` for 5000 iterations. O
 
 | Run | Change from previous | Settings | Result |
 |---|---|---|---|
-| 02 | `generator_grad_clip: 10` | run 01 settings plus generator gradient norm clipping at 10 | running |
+| 02 | `generator_grad_clip: 10` | run 01 settings plus generator gradient norm clipping at 10 | Exploded at iteration 444–456 and stopped: generator gradient norm inf, pixel loss 1.4e8, component style loss 1.7e20. PSNR 11.76 dB at 250 |
+
+Run 02 diagnosis, from the per-iteration losses: iterations 380–439 are calm (generator gradient norm 1–6). At 440–443 the eye discriminators start to win (right-eye D loss 1.39 → 0.98), the eye GAN loss and the component Gram style loss rise (style 0.003 → 0.078) and the gradient norm reaches 51. At 444 the component path explodes first (left-eye GAN 15.2, style 20.7, gradient norm 1560) while the global fake_score is still −0.83; the global discriminator follows from 446 (fake_score −318, then −3.8e3). The trigger is the facial component path: the local discriminators have no R1, and once they separate, the style loss (weight 200) sends very large gradients to the generator. Gradient clipping does not contain it, because Adam normalizes the gradient scale and a non-finite norm makes clipping produce NaN.
+
+### Screening round 3 at 1500 iterations, one factor changed from run 02
+
+Longer screens, because run 02 exploded after the 500 iterations used before.
+
+| Variant | NaN/inf | G spikes | \|score\| ≥ 100 | PSNR (dB) | Longest clean streak | Verdict |
+|---|---|---|---|---|---|---|
+| `comp_style_weight: 20` | 6, 484–503, recovered | 88, 237–1422 | 71, 98–1419 (min fake_score −3.4e6) | 12.13 → 19.94, rising at every validation | 297 (796–1092) | Best: survives the explosions and keeps learning; still unstable |
+| No facial component discriminators | 0 | 145, from 302 | 791, from 303 | 13.06 → 16.28 | 301 (1–301) | The global path alone destabilizes after 300 iterations; generator gradient norm median 99.6 |
+| Component discriminator lr 2e-5 | 0 (stopped at 268) | 68, from 201 (up to 5.7e10) | 140, from 194 | 12.48 | 193 (1–193) | Worst; stopped early |
+
+Reading: there are two sources of instability. The facial component path (local discriminators without R1, Gram style loss) produces the non-finite values; lowering the style weight from 200 to 20 removes most of them. The global discriminator path produces large scores and generator spikes on its own. The discriminator-side screens of rounds 1 and 2 ran with style weight 200, so their results were confounded by the component explosion and are repeated on the new base.
+
+New base (base 03): run 02 with `comp_style_weight: 20`.
+
+### Screening round 4 at 1500 iterations, one factor changed from base 03
