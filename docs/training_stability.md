@@ -124,3 +124,18 @@ The component discriminator update, inherited from upstream GFPGAN, adds the rea
 New base (base 06): base 05 with `comp_style_weight: 0` (no component Gram style loss); it had the smallest and fewest spikes and no score violation after iteration 70.
 
 Runs with the same settings vary: run 03 (base 05) already had 33 spikes at iteration 1091, against 30 in 1500 iterations for the base 05 screen. Single 1500-iteration screens cannot separate small differences.
+
+Spike composition in the `comp_style_weight: 0` screen: the generator loss total over the run has medians pixel 0.019, feature matching 0.060, global GAN 0.071 and component GAN about 0.69 per component. In 16 of the 17 spikes the component GAN terms dominate (10 to 237 per component, generator gradient norm 380 to 8000), while pixel, feature matching and global GAN stay small; only the 1354–1368 episode also moves the global fake_score (−15 to −39). The remaining instability comes from the facial component discriminators.
+
+### Screening round 7 at 1500 iterations, one factor changed from base 06
+
+Factors: component GAN loss weight 0.1; component discriminator lr 5e-5; no facial component discriminators (tests whether the global path alone is stable with the current learning rates).
+
+| Variant | NaN/inf | G spikes | \|score\| ≥ 100 | PSNR (dB) | Max generator gradient norm | Longest clean streak | Verdict |
+|---|---|---|---|---|---|---|---|
+| Base 06 (`comp_style_weight: 0` row of round 6) | 0 | 17, magnitude 25–129 | 3, all at 46–70 | 22.04 | 5.0e5 | 614 | Reference |
+| Component GAN loss weight 0.1 | 0 | 46, 454–1026, magnitude 3.8–17 | 9, 457–1001 (min fake_score −3.5e3) | 12.25 → 23.39, rising | 3.4e4 | 501 (496–996); clean from 1027 to the end (474) | Mixed: highest PSNR and smallest gradients, but more violations. The lower generator loss median (0.33 against 2.2) makes the 10x spike threshold much stricter |
+| Component discriminator lr 5e-5 | 0 | 25, 712–1497, magnitude 81–161 | 14, 155–1496 | 12.24 → 22.38, rising | 1.3e6 | 556 (156–711) | Worse: more score violations until the end |
+| No facial component discriminators | 0 | 22, 708–1500 | 4, all at 710–720 (min fake_score −527) | 12.37 → 24.02, rising | 1.8e3 | 707 (1–707) | Best: one episode at 708–720, highest PSNR, smallest gradients. Without component losses the generator loss median is 0.11–0.12, so the 10x spike threshold is very strict |
+
+New base (base 07): base 06 without the facial component discriminators. This removes GFP-GAN's facial component losses from training; they are to be revisited once the global path is stable.
