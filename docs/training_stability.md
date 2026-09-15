@@ -81,3 +81,35 @@ Reading: there are two sources of instability. The facial component path (local 
 New base (base 03): run 02 with `comp_style_weight: 20`.
 
 ### Screening round 4 at 1500 iterations, one factor changed from base 03
+
+| Variant | NaN/inf | G spikes | \|score\| ≥ 100 | PSNR (dB) | Longest clean streak | Verdict |
+|---|---|---|---|---|---|---|
+| Base 03 (`comp_style_weight: 20`, from round 3) | 6 | 88 | 71 | 12.13 → 19.94, rising | 297 | Reference |
+| `comp_style_weight: 2` | 0 | 102, 448–1359 | 222, 31–1463 | 11.80 → 19.14, then 16.91 (drop of 2.2 dB) | 344 (500–843) | Worse: no NaN, but more score violations and a PSNR drop |
+| Global discriminator lr 2e-5 | 6, 365–840 | 81, 263–1348 | 32, 104–853 (min fake_score −1.1e5) | 10.98 → 19.52, rising | 430 (391–820) | Best so far: half the score violations and the longest clean streak |
+| `r1_reg_weight: 50` | 980, from 520 | 280, from 205 | 1254, from 16 | 12.02 → 14.26, then 5.93 | 302 | Worst: collapses after 500 iterations |
+
+New base (base 04): base 03 with global discriminator lr 2e-5. Remaining issues: 6 sporadic non-finite values from the component path, 81 generator spikes, 32 score violations.
+
+### Screening round 5 at 1500 iterations, one factor changed from base 04
+
+Factors: generator lr 1e-4; facial component GAN loss weight 0.1; R1 on the facial component discriminators (`comp_r1_reg_weight`, new option, same interval as the global R1).
+
+| Variant | NaN/inf | G spikes | \|score\| ≥ 100 | PSNR (dB) | Longest clean streak | Verdict |
+|---|---|---|---|---|---|---|
+| Base 04 (global discriminator lr 2e-5, from round 4) | 6 | 81 | 32 | 10.98 → 19.52, rising | 430 | Reference |
+| Generator lr 1e-4 | 0 | 30, 787–1372 | 4, 789–1356 | 11.63 → 21.66, rising | 786 (1–786) | Best so far on every measure; generator gradient norm median 4.5, max 3.9e6 (was ~1e17) |
+| Component GAN loss weight 0.1 | 0 | 103, 499–1327 | 57, 34–1318 | 12.30 → 15.75 → 14.17 (drop of 1.58 dB) → 21.59 | 447 (52–498) | Worse than generator lr 1e-4 |
+| `comp_r1_reg_weight: 10` | 0 | 45, 203–1478 | 57, 191–1478 (min fake_score −1.5e5) | 11.21 → 21.43, rising | 471 (994–1464) | Mixed against base 04 (no NaN, fewer spikes, more score violations); worse than generator lr 1e-4 on every measure. Option not kept |
+
+New base (base 05): base 04 with generator lr 1e-4 (generator 1e-4, global discriminator 2e-5, component discriminators 2e-4, gradient clipping 10, component style weight 20, R1 weight 10 every 16 iterations, batch 2).
+
+| Run | Change from previous | Settings | Result |
+|---|---|---|---|
+| 03 | base 05 for 5000 iterations | base 05 | Stopped at 1091 iterations: no NaN, 33 generator spikes in two episodes (394–413, 922–1038), 4 score violations, PSNR 11.70 → 18.58 dB rising, longest clean streak 456 (469–924). Episodes recur about every 500 iterations, so 5000 consecutive clean iterations were not reachable with this base |
+
+Run 03 diagnosis: both episodes start in the facial component path. At 390–395 the right-eye discriminator starts to win (D loss 1.39 → 1.01), the generator right-eye GAN loss jumps 0.87 → 16.1 and the gradient norm reaches 721; the global fake_score follows one iteration later (−1.0e4). At 922–929 the same happens through the left eye (D loss 0.84, generator left-eye GAN loss 294).
+
+The component discriminator update, inherited from upstream GFPGAN, adds the real term with the component GAN loss (vanilla, weight 1) and the fake term with the global GAN loss (`cri_gan`: wgan_softplus, weight 0.1). The local discriminators therefore receive a 10x weaker penalty of a different kind on restored patches than on real patches, which is consistent with them suddenly winning.
+
+### Screening round 6 at 1500 iterations, one factor changed from base 05
