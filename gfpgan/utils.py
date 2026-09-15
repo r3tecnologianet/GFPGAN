@@ -3,10 +3,10 @@ import os
 import torch
 from basicsr.utils import img2tensor, tensor2img
 from basicsr.utils.download_util import load_file_from_url
-from facexlib.utils.face_restoration_helper import FaceRestoreHelper
 from torchvision.transforms.functional import normalize
 
 from gfpgan.archs.gfpganv1_clean_arch import GFPGANv1Clean
+from gfpgan.face_helper import FaceHelper
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -25,9 +25,18 @@ class GFPGANer():
         arch (str): The GFPGAN architecture. Option: clean | RestoreFormer. Default: clean.
         channel_multiplier (int): Channel multiplier for large networks of StyleGAN2. Default: 2.
         bg_upsampler (nn.Module): The upsampler for the background. Default: None.
+        det_model (str): MediaPipe face detector. Option: blaze_face_short_range | blaze_face_full_range.
+            Default: blaze_face_short_range.
     """
 
-    def __init__(self, model_path, upscale=2, arch='clean', channel_multiplier=2, bg_upsampler=None, device=None):
+    def __init__(self,
+                 model_path,
+                 upscale=2,
+                 arch='clean',
+                 channel_multiplier=2,
+                 bg_upsampler=None,
+                 device=None,
+                 det_model='blaze_face_short_range'):
         self.upscale = upscale
         self.bg_upsampler = bg_upsampler
 
@@ -51,18 +60,9 @@ class GFPGANer():
             self.gfpgan = RestoreFormer()
         else:
             raise ValueError(f'Unsupported arch {arch}. Option: clean | RestoreFormer.')
-        # initialize face helper
-        # use_parse=False: ParseNet code and weights have non-commercial licenses.
-        # retinaface_resnet50 weights are trained on WIDER FACE (non-commercial); see LICENSE_CLEANUP.md.
-        self.face_helper = FaceRestoreHelper(
-            upscale,
-            face_size=512,
-            crop_ratio=(1, 1),
-            det_model='retinaface_resnet50',
-            save_ext='png',
-            use_parse=False,
-            device=self.device,
-            model_rootpath='gfpgan/weights')
+        # initialize face helper (MediaPipe BlazeFace detection, Apache 2.0 model)
+        self.face_helper = FaceHelper(
+            upscale, face_size=512, det_model=det_model, model_rootpath=os.path.join(ROOT_DIR, 'gfpgan/weights'))
 
         if model_path.startswith('https://'):
             model_path = load_file_from_url(
@@ -85,10 +85,9 @@ class GFPGANer():
             self.face_helper.cropped_faces = [img]
         else:
             self.face_helper.read_image(img)
-            # get face landmarks for each face
-            self.face_helper.get_face_landmarks_5(only_center_face=only_center_face, eye_dist_threshold=5)
+            # get face keypoints for each face
+            self.face_helper.get_face_landmarks(only_center_face=only_center_face, eye_dist_threshold=5)
             # eye_dist_threshold=5: skip faces whose eye distance is smaller than 5 pixels
-            # TODO: even with eye_dist_threshold, it will still introduce wrong detections and restorations.
             # align and warp each face
             self.face_helper.align_warp_face()
 
@@ -113,12 +112,11 @@ class GFPGANer():
         if not has_aligned and paste_back:
             # upsample the background
             if self.bg_upsampler is not None:
-                # Now only support RealESRGAN for upsampling background
                 bg_img = self.bg_upsampler.enhance(img, outscale=self.upscale)[0]
             else:
                 bg_img = None
 
-            self.face_helper.get_inverse_affine(None)
+            self.face_helper.get_inverse_affine()
             # paste each restored face to the input image
             restored_img = self.face_helper.paste_faces_to_input_image(upsample_img=bg_img)
             return self.face_helper.cropped_faces, self.face_helper.restored_faces, restored_img

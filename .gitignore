@@ -137,3 +137,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# MediaPipe face detector models
+gfpgan/weights/*.tflite

@@ -66,4 +66,4 @@ Environment: Python 3.11.16, torch 2.1.2+cu121, torchvision 0.16.2+cu121, numpy 
 | `flake8 .` | Pass |
 | `isort --check-only --diff gfpgan/ inference_gfpgan.py setup.py` | Pass |
 | `yapf -r -d gfpgan/ inference_gfpgan.py setup.py` | Pass |
-| `codespell` | 1 finding: `THIRDPARTY` in `setup.cfg` (isort setting, unchanged since `7552a77`) |
+| `codespell` | 1 finding: the isort `default_section` value in `setup.cfg` (unchanged since `7552a77`) |
