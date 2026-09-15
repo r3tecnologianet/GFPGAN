@@ -195,3 +195,13 @@ Episodes do not stop with training; they recur every 500–1500 iterations. The 
 Two kinds of events show up in the per-iteration losses of run 04 and the round 9 screens:
 - Discriminator-led episodes: fake_score drifts to −20 to −60 for a few iterations before the generator losses jump (816–819 in run 04, 480 and 825–831 with seed 1). Most events are of this kind.
 - Single-iteration generator output explosions: at 2880 in run 04 the pixel loss goes from 0.02 to 914 (fake_score −8.3e4, gradient norm 2.5e5) and is back to normal at the next iteration, with fake_score −0.7 just before; iteration 1441 of the feature matching 0.1 screen is similar (pixel loss 27). Weights change very little in one Adam step, so these point at specific degraded inputs. The generator has two unbounded paths: the SFT modulation (`out * scale + shift`, scale from an unconstrained convolution) and the RGB output.
+
+Input probe: the run 04 generator at iteration 3000 (training weights, train mode) was run on 2468 degraded training samples (617 faces, 4 degradation draws each). Max |output| has median 0.93, 99th percentile 1.07 and maximum 1.17; max |SFT scale| stays at 0.95–1.67 for the worst samples; L1 to GT is at most 0.32. No input makes these weights explode, so the single-iteration explosions are not input-dependent for a given weight state. They come from the weight updates themselves: with Adam (β1 = 0, β2 = 0.99 in `GFPGANModel`), a gradient much larger than its recent history moves every parameter by up to lr / sqrt(1 − β2) = 10 × lr in one step, and gradient norm clipping does not change that, because Adam is invariant to the gradient scale.
+
+### Screening round 10 at 3000 iterations, one factor changed from base 09
+
+Longer screens, because run 04 shows that 1500 iterations often end before the second episode and that the same config gives different episode timing. Reference: the first 3000 iterations of run 04. Factors that reduce the step size or the adversarial pressure: generator lr 5e-5; global discriminator lr 1e-5; global GAN loss weight 0.02.
+
+| Variant | NaN/inf | G spikes | \|score\| ≥ 100 | PSNR (dB) | Max generator gradient norm | Longest clean streak | Verdict |
+|---|---|---|---|---|---|---|---|
+| Base 09 (run 04, iterations 1–3000) | 0 | 44, 816–2889 | 8, 817–2883 (min fake_score −8.3e4) | 12.57 → 25.28, then 25.26 | 2.5e5 | 815 (1–815) | Reference |
