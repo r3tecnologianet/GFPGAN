@@ -233,3 +233,22 @@ Factors: generator lr 2.5e-5 (continues the only trend that removed episodes); R
 | Global discriminator lr 1e-5 | — | — | — | — | — | — | Not run, for the same reason |
 
 New base (base 11): base 10 with generator lr 2.5e-5. Run 06 trains base 11 for 10,000 iterations against the 5000-iteration criterion.
+
+| Run | Change from previous | Settings | Result |
+|---|---|---|---|
+| 06 | base 11 for 10,000 iterations | base 11 (seed 0) | **Stable.** At iteration 6070: no NaN, no \|score\| ≥ 100 (max \|fake_score\| 18.9, max \|real_score\| 7.8), one generator spike at 350 (G total 1.15 against a median of 0.11), no PSNR drop > 1 dB (largest drop between validations 0.18 dB); clean streak 5720 iterations (351–6070); generator gradient norm median 4.3, max 83; max pixel loss 0.078 |
+
+## Stable configuration
+
+Base 11 meets the criterion: `options/train_gfpgan_clean.yml` with
+- generator lr 2.5e-5, global discriminator lr 2e-5;
+- `generator_grad_clip: 10`;
+- no facial component discriminators and `comp_style_weight: 0`;
+- feature matching weight 1.0, global GAN loss weight 0.05;
+- R1 weight 10 every 4 iterations (`net_d_reg_every: 4`);
+- batch 2 on one GPU, seed 0.
+
+Open issues:
+- Validation PSNR peaks at 25.16 dB at iteration 3750 and then declines slowly (24.39 dB at 6000), without any drop above 1 dB. With 617 training faces this is consistent with overfitting; the criterion does not cover it.
+- The facial component losses of GFP-GAN are disabled. They were the first source of instability and have not been re-tested on the stable base.
+- Stability was shown for one seed and one small dataset.
