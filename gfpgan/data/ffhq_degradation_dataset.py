@@ -142,7 +142,9 @@ class FFHQDegradationDataset(data.Dataset):
             img_lq = degradations.random_add_gaussian_noise(img_lq, self.noise_range)
         # jpeg compression
         if self.jpeg_range is not None:
-            img_lq = degradations.random_add_jpg_compression(img_lq, self.jpeg_range)
+            # OpenCV requires an integer quality; basicsr's random_add_jpg_compression passes a float
+            quality = int(np.random.uniform(self.jpeg_range[0], self.jpeg_range[1]))
+            img_lq = degradations.add_jpg_compression(img_lq, quality)
 
         # resize to original size
         img_lq = cv2.resize(img_lq, (w, h), interpolation=cv2.INTER_LINEAR)

@@ -22,7 +22,7 @@ Branch `license-cleanup`, based on `7552a77` (TencentARC/GFPGAN). Goal: remove o
 
 | File | Change |
 |---|---|
-| `gfpgan/data/ffhq_degradation_dataset.py` | Removed facial component cropping (`crop_components`, `get_component_coordinates`), derived from DFDNet |
+| `gfpgan/data/ffhq_degradation_dataset.py` | Removed facial component cropping (`crop_components`, `get_component_coordinates`), derived from DFDNet. JPEG quality is now sampled as an integer: basicsr 1.4.2 `random_add_jpg_compression` passes a float that current OpenCV rejects (the upstream test at `7552a77` fails the same way) |
 | `gfpgan/utils.py` | Removed `original` and `bilinear` architectures; `use_parse=False` (ParseNet is CC BY-NC-SA 4.0, weights from CelebAMask-HQ); unknown architectures raise an error |
 | `inference_gfpgan.py` | No automatic weight download; `--model_path` is required; no Real-ESRGAN |
 | `tests/test_gfpgan_arch.py` | Only tests for the `clean` architecture |
@@ -57,5 +57,13 @@ Branch `license-cleanup`, based on `7552a77` (TencentARC/GFPGAN). Goal: remove o
 
 ## Verification
 
-- `python3 -m py_compile` passes on all modified Python files.
-- Tests and linters were not run: `torch`, `basicsr`, `facexlib`, `flake8`, `isort` and `yapf` are not installed in this environment.
+Environment: Python 3.11.16, torch 2.1.2+cu121, torchvision 0.16.2+cu121, numpy 1.26.4, basicsr 1.4.2, facexlib 0.3.0, NVIDIA GeForce RTX 3060 Ti (CUDA available, so the CUDA-only arch tests ran).
+
+| Check | Result |
+|---|---|
+| `pytest` with opencv-python 4.8.1.78 | 7 passed |
+| `pytest` with opencv-python 4.11.0.86 | 7 passed |
+| `flake8 .` | Pass |
+| `isort --check-only --diff gfpgan/ inference_gfpgan.py setup.py` | Pass |
+| `yapf -r -d gfpgan/ inference_gfpgan.py setup.py` | Pass |
+| `codespell` | 1 finding: `THIRDPARTY` in `setup.cfg` (isort setting, unchanged since `7552a77`) |
