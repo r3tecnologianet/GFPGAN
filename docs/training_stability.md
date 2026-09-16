@@ -60,6 +60,12 @@ Run 08 evaluated on the 64 FFHQ validation pairs (EMA weights):
 
 On this dataset the generator beats its input on every metric from iteration 2000 on, and keeps improving NIQE (12.86 → 7.31) while PSNR stays near 21 dB. LMD ends below the degraded input (5.38 against 5.65) and MediaPipe fails to find a face in 2 of 64 outputs against 7 of 64 inputs. The PSNR peak at 4000 followed by a plateau is the same blur-for-texture trade as in the 617-face runs, without the later decline.
 
+| Run | Change from previous | Settings | Result |
+|---|---|---|---|
+| 09 | base 12 on the FFHQ dataset | base 11 plus the three facial component discriminators at component lr 2.5e-5, 9927 training faces | **Stable.** 10,000 iterations with no violation at all; clean streak 10,000, from the first iteration. Validation PSNR 10.81 → 21.35 dB at 4750, then 21.18 at 10,000 |
+
+The facial component discriminators cost nothing on this dataset: run 09 is clean from the first iteration (run 08 had one spike) and ends at the same PSNR (21.18 against 21.15). The verdict against them in round 12 came from the 617-face set, where they lowered every quality metric; it does not hold here.
+
 ## Environment
 
 Python 3.11.16, torch 2.1.2+cu121, basicsr 1.4.2, mediapipe 0.10.14, NVIDIA GeForce RTX 3060 Ti (8 GB).
