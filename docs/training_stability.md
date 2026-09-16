@@ -39,6 +39,27 @@ The check is applied to the training log by an analysis script (kept outside the
 
 FFHQ is used here because it is aligned and curated, which is what the stability runs need. It carries its own licence terms and is not a licensed corpus for release; the clean-room data question is separate and stays open.
 
+| Run | Change from previous | Settings | Result |
+|---|---|---|---|
+| 08 | base 11 on the FFHQ dataset | base 11 (seed 0), 9927 training faces | **Stable.** 10,000 iterations: no NaN, one generator spike at 1882 (G total 1.93 against a median of 0.10), no \|score\| ≥ 100, no PSNR drop > 1 dB; clean streak 8118 (1883–10,000). Validation PSNR 10.91 → 21.50 dB at 3500, then 20.97–21.18 to the end |
+
+With 9927 training faces an epoch is 4963 iterations instead of 308, so each sample is seen 16 times less often. The episodes that recurred at fixed iterations with the 617-face set are gone: a single small spike in 10,000 iterations. Validation PSNR is 3.5 dB below the 617-face runs and flattens instead of falling, which is what a harder, more varied validation set gives.
+
+Run 08 evaluated on the 64 FFHQ validation pairs (EMA weights):
+
+| Iteration | PSNR (dB) | Component PSNR (dB) | LMD (px) | LMD failures | NIQE |
+|---|---|---|---|---|---|
+| degraded input | 20.64 | 20.10 | 5.65 | 7 | 12.86 |
+| 1000 | 18.40 | 18.89 | 8.87 | 3 | 13.11 |
+| 2000 | 20.88 | 20.78 | 6.73 | 3 | 11.60 |
+| 4000 | 21.47 | 20.94 | 5.96 | 3 | 10.43 |
+| 6000 | 21.04 | 20.36 | 5.74 | 2 | 8.72 |
+| 8000 | 21.05 | 20.29 | 6.02 | 2 | 7.47 |
+| 10,000 | 21.15 | 20.40 | 5.38 | 2 | **7.31** |
+| ground truth | — | — | 0 | 0 | 3.75 |
+
+On this dataset the generator beats its input on every metric from iteration 2000 on, and keeps improving NIQE (12.86 → 7.31) while PSNR stays near 21 dB. LMD ends below the degraded input (5.38 against 5.65) and MediaPipe fails to find a face in 2 of 64 outputs against 7 of 64 inputs. The PSNR peak at 4000 followed by a plateau is the same blur-for-texture trade as in the 617-face runs, without the later decline.
+
 ## Environment
 
 Python 3.11.16, torch 2.1.2+cu121, basicsr 1.4.2, mediapipe 0.10.14, NVIDIA GeForce RTX 3060 Ti (8 GB).
