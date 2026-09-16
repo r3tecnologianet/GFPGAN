@@ -80,6 +80,12 @@ Runs 08 and 09 on the same 64 validation pairs (EMA weights):
 | 10,000 | 21.15 / 21.18 | 20.40 / 20.39 | 5.38 / **5.05** | 7.31 / **5.29** |
 | ground truth | — | — | 0 | 3.75 |
 
+| Run | Change from previous | Settings | Result |
+|---|---|---|---|
+| 10 | base 12 on the full FFHQ dataset, 100,000 iterations | base 12 (seed 0), 69,674 training faces, 256 validation pairs, learning rate halved at 75,000 and 90,000 | **Stable.** 100,000 iterations with no violation at all: no NaN, no generator spike, no \|score\| ≥ 100, no PSNR drop > 1 dB; clean streak 100,000. Validation PSNR 21.48 → 23.14 dB at 87,500, 23.05 at the end; about 16 hours on one RTX 3060 Ti at 0.60 s/iteration |
+
+Seven times more data removes the last instability and raises quality: run 10 never spikes in 100,000 iterations, and its validation PSNR (23.05 dB on 256 pairs) is well above run 09's 21.18 dB on 64 pairs. The PSNR rises steadily to iteration 87,500 instead of peaking early and falling, so the overfitting seen with 617 and 9927 faces does not appear here.
+
 Run 09 starts slower, matches run 08 by iteration 4000 and then pulls ahead: at 10,000 its NIQE is 5.29 against 7.31 (ground truth 3.75) and its LMD 5.05 against 5.38, with the same PSNR and component PSNR. The facial component discriminators earn their place once the data is curated.
 
 Conclusion: `options/train_gfpgan_clean.yml` takes base 12 — base 11 plus the three facial component discriminators at component discriminator lr 2.5e-5, with the component Gram style loss still off.
