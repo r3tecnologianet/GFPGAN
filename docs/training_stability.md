@@ -86,6 +86,22 @@ Runs 08 and 09 on the same 64 validation pairs (EMA weights):
 
 Seven times more data removes the last instability and raises quality: run 10 never spikes in 100,000 iterations, and its validation PSNR (23.05 dB on 256 pairs) is well above run 09's 21.18 dB on 64 pairs. The PSNR rises steadily to iteration 87,500 instead of peaking early and falling, so the overfitting seen with 617 and 9927 faces does not appear here.
 
+Run 10 evaluated on the 256 FFHQ validation pairs (EMA weights):
+
+| Iteration | PSNR (dB) | Component PSNR (dB) | LMD (px) | LMD failures | NIQE |
+|---|---|---|---|---|---|
+| degraded input | 21.86 | 21.31 | 6.23 | 12 | 12.74 |
+| 10,000 | 21.82 | 21.17 | 5.01 | 2 | 6.00 |
+| 25,000 | 22.15 | 21.72 | 4.07 | 0 | 4.36 |
+| 50,000 | 22.64 | 22.33 | 3.71 | 0 | 4.39 |
+| 75,000 | 22.99 | 22.69 | 3.37 | 0 | 4.48 |
+| 100,000 | **23.05** | **22.60** | **3.21** | 1 | **3.75** |
+| ground truth | — | — | 0 | 0 | 3.77 |
+
+The generator beats its input on every metric: +1.19 dB PSNR, +1.29 dB component PSNR, LMD 3.21 px against 6.23, and NIQE 3.75, equal to the ground truth's 3.77 (the 617-face runs reached 6.38 against a ground truth of 5.68). Realism saturates around iteration 25,000 (NIQE 4.36) and the rest of the run buys fidelity: PSNR +0.90 dB and LMD −0.86 px from 25,000 to 100,000. The learning rate halving at 75,000 and 90,000 coincides with the last NIQE gain, from 4.48 to 3.75.
+
+This closes the stability work: `options/train_gfpgan_clean.yml` trains without a single violation for 100,000 iterations and produces restorations that a no-reference quality metric cannot separate from real faces. What remains open is the licensed corpus (FFHQ is a stand-in), and identity preservation, which no metric here measures.
+
 Run 09 starts slower, matches run 08 by iteration 4000 and then pulls ahead: at 10,000 its NIQE is 5.29 against 7.31 (ground truth 3.75) and its LMD 5.05 against 5.38, with the same PSNR and component PSNR. The facial component discriminators earn their place once the data is curated.
 
 Conclusion: `options/train_gfpgan_clean.yml` takes base 12 — base 11 plus the three facial component discriminators at component discriminator lr 2.5e-5, with the component Gram style loss still off.
