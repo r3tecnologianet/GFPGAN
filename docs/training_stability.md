@@ -66,6 +66,22 @@ On this dataset the generator beats its input on every metric from iteration 200
 
 The facial component discriminators cost nothing on this dataset: run 09 is clean from the first iteration (run 08 had one spike) and ends at the same PSNR (21.18 against 21.15). The verdict against them in round 12 came from the 617-face set, where they lowered every quality metric; it does not hold here.
 
+Runs 08 and 09 on the same 64 validation pairs (EMA weights):
+
+| Iteration | PSNR 08 / 09 (dB) | Component PSNR 08 / 09 (dB) | LMD 08 / 09 (px) | NIQE 08 / 09 |
+|---|---|---|---|---|
+| degraded input | 20.64 | 20.10 | 5.65 | 12.86 |
+| 2000 | 20.88 / 19.99 | 20.78 / 20.16 | 6.73 / 7.47 | 11.60 / 12.30 |
+| 4000 | 21.47 / 21.29 | 20.94 / 20.19 | 5.96 / 6.73 | 10.43 / 10.45 |
+| 6000 | 21.04 / 21.03 | 20.36 / 20.15 | 5.74 / 5.61 | 8.72 / 7.96 |
+| 8000 | 21.05 / 21.05 | 20.29 / 20.26 | 6.02 / 5.16 | 7.47 / 5.44 |
+| 10,000 | 21.15 / 21.18 | 20.40 / 20.39 | 5.38 / **5.05** | 7.31 / **5.29** |
+| ground truth | — | — | 0 | 3.75 |
+
+Run 09 starts slower, matches run 08 by iteration 4000 and then pulls ahead: at 10,000 its NIQE is 5.29 against 7.31 (ground truth 3.75) and its LMD 5.05 against 5.38, with the same PSNR and component PSNR. The facial component discriminators earn their place once the data is curated.
+
+Conclusion: `options/train_gfpgan_clean.yml` takes base 12 — base 11 plus the three facial component discriminators at component discriminator lr 2.5e-5, with the component Gram style loss still off.
+
 ## Environment
 
 Python 3.11.16, torch 2.1.2+cu121, basicsr 1.4.2, mediapipe 0.10.14, NVIDIA GeForce RTX 3060 Ti (8 GB).
