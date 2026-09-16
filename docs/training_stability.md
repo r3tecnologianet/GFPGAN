@@ -102,6 +102,17 @@ The generator beats its input on every metric: +1.19 dB PSNR, +1.29 dB component
 
 This closes the stability work: `options/train_gfpgan_clean.yml` trains without a single violation for 100,000 iterations and produces restorations that a no-reference quality metric cannot separate from real faces. What remains open is the licensed corpus (FFHQ is a stand-in), and identity preservation, which no metric here measures.
 
+## Evaluation build
+
+The run 10 generator was exported for an independent team to judge output quality: the EMA weights at iteration
+100,000 alone, as `params_ema`, 332.5 MiB, sha256
+`4d29d02293fb4f34d3f29d9d030ba07dce41f0269227ea809d227cecceb54f69`. It is packaged outside the repository, at
+`/mnt/dados/gfpgan-clean/export/`, with the training config, a model card and checksums, and both inference paths
+(`--aligned` and full detection) were run against the exported file.
+
+These weights are trained on FFHQ and are for evaluation only, not for release: the licensed corpus is still the
+open task, so the export is deliberately not committed here.
+
 Run 09 starts slower, matches run 08 by iteration 4000 and then pulls ahead: at 10,000 its NIQE is 5.29 against 7.31 (ground truth 3.75) and its LMD 5.05 against 5.38, with the same PSNR and component PSNR. The facial component discriminators earn their place once the data is curated.
 
 Conclusion: `options/train_gfpgan_clean.yml` takes base 12 — base 11 plus the three facial component discriminators at component discriminator lr 2.5e-5, with the component Gram style loss still off.
