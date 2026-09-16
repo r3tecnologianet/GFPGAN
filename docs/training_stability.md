@@ -113,6 +113,42 @@ The run 10 generator was exported for an independent team to judge output qualit
 These weights are trained on FFHQ and are for evaluation only, not for release: the licensed corpus is still the
 open task, so the export is deliberately not committed here.
 
+### Comparison with the official GFPGAN v1.4
+
+The official release weights use the same `GFPGANv1Clean` architecture, so they load into this code with
+`strict=True` (285 tensors, no missing or extra key). They were downloaded as a local reference only: they are
+trained on FFHQ with non-commercial terms, are not committed, redistributed, or used for anything but this
+comparison.
+
+Same 256 FFHQ validation pairs, same evaluation code:
+
+| | Degraded input | Official v1.4 | This build | Ground truth |
+|---|---|---|---|---|
+| PSNR | 21.86 dB | 21.69 dB | **23.05 dB** | — |
+| PSNR over eye and mouth boxes | 21.31 dB | 21.42 dB | **22.60 dB** | — |
+| Landmark distance | 6.23 px | **2.47 px** | 3.21 px | 0 |
+| NIQE | 12.74 | 4.36 | **3.77** | 3.77 |
+
+**These numbers flatter this build and should not be read as beating the official model.** The validation set is
+FFHQ degraded by the same synthetic pipeline this build trained on, so it is in-domain here and out-of-domain for
+v1.4. Landmark distance, the metric least sensitive to that bias, favours v1.4 by a wide margin (2.47 against
+3.21 px).
+
+Visual inspection (grids in `/mnt/dados/gfpgan-clean/compare/`) agrees with the landmark result, not with PSNR:
+
+- On the synthetic validation faces both models produce plausible restorations. This build keeps more skin and
+  fabric texture; v1.4 is smoother and cleaner.
+- On one validation face with dark skin this build fails badly, with heavy artefacts across the face, while v1.4
+  restores it cleanly but lightens the skin tone noticeably — two different failures, both worth recording.
+- On real unaligned photographs, which neither model saw in this form, **v1.4 is clearly better**: this build
+  produces melted mouth and beard detail and a deformation around the nose, where v1.4 stays clean and faithful.
+- In one photo the detector reported a face in a neon sign, and both models "restored" it: a detector false
+  positive, not a generator problem.
+
+Conclusion: the in-domain metrics overstate this build. On real photographs it is still behind the official model,
+which is expected from a decoder trained from scratch for 2.9 epochs without a generative prior. The gap is a
+data and schedule problem, not a stability problem.
+
 Run 09 starts slower, matches run 08 by iteration 4000 and then pulls ahead: at 10,000 its NIQE is 5.29 against 7.31 (ground truth 3.75) and its LMD 5.05 against 5.38, with the same PSNR and component PSNR. The facial component discriminators earn their place once the data is curated.
 
 Conclusion: `options/train_gfpgan_clean.yml` takes base 12 — base 11 plus the three facial component discriminators at component discriminator lr 2.5e-5, with the component Gram style loss still off.
