@@ -1,0 +1,155 @@
+# Background super-resolution training config using only components without commercial-use restrictions.
+# The official Real-ESRGAN release weights are trained on DIV2K, Flickr2K and OST, which are released for academic
+# research only, so this config trains the model instead of downloading them:
+# - SRVGGNetCompactClean generator (1.2M parameters) and UNetDiscriminatorClean, both plain PyTorch
+# - discriminator feature matching instead of the VGG19/ImageNet perceptual loss (RealESRGANCleanModel)
+# - the second-order synthetic degradation of the Real-ESRGAN paper, which needs no data beyond clean photographs
+# The dataset paths are placeholders: use photographs you are licensed to train on. `meta_info` is a text file
+# with one image path per line, relative to `dataroot_gt`.
+
+# general settings
+name: train_RealESRGANClean_x4
+model_type: RealESRGANCleanModel
+scale: 4
+num_gpu: auto
+manual_seed: 0
+
+# ground truth used by each loss: the upstream default sharpens it with an unsharp mask
+l1_gt_usm: true
+percep_gt_usm: false
+gan_gt_usm: false
+
+# the first degradation process
+resize_prob: [0.2, 0.7, 0.1]  # up, down, keep
+resize_range: [0.15, 1.5]
+gaussian_noise_prob: 0.5
+noise_range: [1, 30]
+poisson_scale_range: [0.05, 3]
+gray_noise_prob: 0.4
+jpeg_range: [30, 95]
+
+# the second degradation process
+second_blur_prob: 0.8
+resize_prob2: [0.3, 0.4, 0.3]  # up, down, keep
+resize_range2: [0.3, 1.2]
+gaussian_noise_prob2: 0.5
+noise_range2: [1, 25]
+poisson_scale_range2: [0.05, 2.5]
+gray_noise_prob2: 0.4
+jpeg_range2: [30, 95]
+
+gt_size: 256
+queue_size: 180
+
+# dataset and data loader settings
+datasets:
+  train:
+    name: LicensedPhotos
+    type: RealESRGANDataset
+    dataroot_gt: datasets/licensed_photos
+    meta_info: datasets/licensed_photos/meta_info.txt
+    io_backend:
+      type: disk
+
+    blur_kernel_size: 21
+    kernel_list: ['iso', 'aniso', 'generalized_iso', 'generalized_aniso', 'plateau_iso', 'plateau_aniso']
+    kernel_prob: [0.45, 0.25, 0.12, 0.03, 0.12, 0.03]
+    sinc_prob: 0.1
+    blur_sigma: [0.2, 3]
+    betag_range: [0.5, 4]
+    betap_range: [1, 2]
+
+    blur_kernel_size2: 21
+    kernel_list2: ['iso', 'aniso', 'generalized_iso', 'generalized_aniso', 'plateau_iso', 'plateau_aniso']
+    kernel_prob2: [0.45, 0.25, 0.12, 0.03, 0.12, 0.03]
+    sinc_prob2: 0.1
+    blur_sigma2: [0.2, 1.5]
+    betag_range2: [0.5, 4]
+    betap_range2: [1, 2]
+    final_sinc_prob: 0.8
+
+    gt_size: 256
+    use_hflip: true
+    use_rot: false
+
+    # data loader
+    use_shuffle: true
+    num_worker_per_gpu: 4
+    batch_size_per_gpu: 12
+    dataset_enlarge_ratio: 1
+    prefetch_mode: ~
+
+# network structures
+network_g:
+  type: SRVGGNetCompactClean
+  num_in_ch: 3
+  num_out_ch: 3
+  num_feat: 64
+  num_conv: 32
+  upscale: 4
+  act_type: prelu
+
+network_d:
+  type: UNetDiscriminatorClean
+  num_in_ch: 3
+  num_feat: 64
+  skip_connection: true
+
+# path
+path:
+  pretrain_network_g: ~
+  param_key_g: params_ema
+  strict_load_g: true
+  pretrain_network_d: ~
+  resume_state: ~
+
+# training settings
+train:
+  ema_decay: 0.999
+  optim_g:
+    type: Adam
+    lr: !!float 1e-4
+    betas: [0.9, 0.99]
+  optim_d:
+    type: Adam
+    lr: !!float 1e-4
+    betas: [0.9, 0.99]
+
+  scheduler:
+    type: MultiStepLR
+    milestones: [400000]
+    gamma: 0.5
+
+  total_iter: 400000
+  warmup_iter: -1  # no warm up
+
+  # losses
+  pixel_opt:
+    type: L1Loss
+    loss_weight: 1.0
+    reduction: mean
+  # discriminator feature matching loss (replaces the perceptual loss)
+  feature_matching_weight: 1.0
+  gan_opt:
+    type: GANLoss
+    gan_type: vanilla
+    real_label_val: 1.0
+    fake_label_val: 0.0
+    loss_weight: !!float 1e-1
+
+  net_d_iters: 1
+  net_d_init_iters: 0
+
+# logging settings
+logger:
+  print_freq: 100
+  save_checkpoint_freq: !!float 5e3
+  use_tb_logger: true
+  wandb:
+    project: ~
+    resume_id: ~
+
+# dist training settings
+dist_params:
+  backend: nccl
+  port: 29500

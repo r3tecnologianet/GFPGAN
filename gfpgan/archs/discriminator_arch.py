@@ -107,6 +107,72 @@ class StyleGAN2DiscriminatorClean(nn.Module):
 
 
 @ARCH_REGISTRY.register()
+class UNetDiscriminatorClean(nn.Module):
+    """U-Net discriminator with spectral normalization, for the background super-resolution model.
+
+    Same shape as the discriminator described in the Real-ESRGAN paper: three strided convolutions down, three
+    bilinear upsamples back with skip connections, then two extra convolutions and a per-pixel logit map. The
+    forward can also return the downsampling features, which the training model uses for feature matching in
+    place of a VGG perceptual loss.
+
+    Args:
+        num_in_ch (int): Channel number of the input. Default: 3.
+        num_feat (int): Channel number of the first layer. Default: 64.
+        skip_connection (bool): Whether to add the skip connections. Default: True.
+    """
+
+    def __init__(self, num_in_ch=3, num_feat=64, skip_connection=True):
+        super(UNetDiscriminatorClean, self).__init__()
+        self.skip_connection = skip_connection
+        norm = nn.utils.spectral_norm
+        self.conv0 = nn.Conv2d(num_in_ch, num_feat, 3, 1, 1)
+        self.conv1 = norm(nn.Conv2d(num_feat, num_feat * 2, 4, 2, 1, bias=False))
+        self.conv2 = norm(nn.Conv2d(num_feat * 2, num_feat * 4, 4, 2, 1, bias=False))
+        self.conv3 = norm(nn.Conv2d(num_feat * 4, num_feat * 8, 4, 2, 1, bias=False))
+        self.conv4 = norm(nn.Conv2d(num_feat * 8, num_feat * 4, 3, 1, 1, bias=False))
+        self.conv5 = norm(nn.Conv2d(num_feat * 4, num_feat * 2, 3, 1, 1, bias=False))
+        self.conv6 = norm(nn.Conv2d(num_feat * 2, num_feat, 3, 1, 1, bias=False))
+        self.conv7 = norm(nn.Conv2d(num_feat, num_feat, 3, 1, 1, bias=False))
+        self.conv8 = norm(nn.Conv2d(num_feat, num_feat, 3, 1, 1, bias=False))
+        self.conv9 = nn.Conv2d(num_feat, 1, 3, 1, 1)
+
+    def forward(self, x, return_feats=False):
+        """Forward function.
+
+        Args:
+            x (Tensor): Images with shape (b, num_in_ch, h, w); h and w must be multiples of 8.
+            return_feats (bool): Whether to also return the three downsampling features. Default: False.
+
+        Returns:
+            Tensor | tuple: Logit map with shape (b, 1, h, w), or (logits, list of features) if return_feats.
+        """
+        x0 = F.leaky_relu(self.conv0(x), negative_slope=0.2)
+        x1 = F.leaky_relu(self.conv1(x0), negative_slope=0.2)
+        x2 = F.leaky_relu(self.conv2(x1), negative_slope=0.2)
+        x3 = F.leaky_relu(self.conv3(x2), negative_slope=0.2)
+
+        up = F.interpolate(x3, scale_factor=2, mode='bilinear', align_corners=False)
+        x4 = F.leaky_relu(self.conv4(up), negative_slope=0.2)
+        if self.skip_connection:
+            x4 = x4 + x2
+        up = F.interpolate(x4, scale_factor=2, mode='bilinear', align_corners=False)
+        x5 = F.leaky_relu(self.conv5(up), negative_slope=0.2)
+        if self.skip_connection:
+            x5 = x5 + x1
+        up = F.interpolate(x5, scale_factor=2, mode='bilinear', align_corners=False)
+        x6 = F.leaky_relu(self.conv6(up), negative_slope=0.2)
+        if self.skip_connection:
+            x6 = x6 + x0
+
+        out = F.leaky_relu(self.conv7(x6), negative_slope=0.2)
+        out = F.leaky_relu(self.conv8(out), negative_slope=0.2)
+        out = self.conv9(out)
+        if return_feats:
+            return out, [x1, x2, x3]
+        return out
+
+
+@ARCH_REGISTRY.register()
 class FacialComponentDiscriminatorClean(nn.Module):
     """Small patch discriminator for facial components (eyes, mouth), with standard PyTorch operations.
 

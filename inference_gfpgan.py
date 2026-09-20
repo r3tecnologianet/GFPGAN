@@ -6,6 +6,7 @@ import os
 from basicsr.utils import imwrite
 
 from gfpgan import GFPGANer
+from gfpgan.bg_upsampler import SRBackgroundUpsampler
 
 
 def main():
@@ -33,6 +34,12 @@ def main():
         default='auto',
         help='Image extension. Options: auto | jpg | png, auto means using the same extension as inputs. Default: auto')
     parser.add_argument('-w', '--weight', type=float, default=0.5, help='Adjustable weights.')
+    parser.add_argument(
+        '--bg_model',
+        type=str,
+        default=None,
+        help='Path to licensed super-resolution weights for the background. Default: none, which upscales the '
+        'background with Lanczos.')
     args = parser.parse_args()
 
     # ------------------------ input & output ------------------------
@@ -46,13 +53,19 @@ def main():
     os.makedirs(args.output, exist_ok=True)
 
     # ------------------------ set up GFPGAN restorer ------------------------
-    # no background upsampler: the Real-ESRGAN release weights are trained on non-commercial data
+    # The background is upscaled with Lanczos unless --bg_model supplies super-resolution weights. Nothing is
+    # downloaded: the Real-ESRGAN release weights are trained on non-commercial data.
+    bg_upsampler = None
+    if args.bg_model is not None:
+        bg_upsampler = SRBackgroundUpsampler(args.bg_model)
+        print(f'Background super-resolution from {args.bg_model} (x{bg_upsampler.scale})')
+
     restorer = GFPGANer(
         model_path=args.model_path,
         upscale=args.upscale,
         arch=args.arch,
         channel_multiplier=args.channel_multiplier,
-        bg_upsampler=None)
+        bg_upsampler=bg_upsampler)
 
     # ------------------------ restore ------------------------
     for img_path in img_list:
