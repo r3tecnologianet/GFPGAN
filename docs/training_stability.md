@@ -429,3 +429,30 @@ Reading:
 Conclusion: `options/train_gfpgan_clean.yml` keeps base 11, without the facial component discriminators. They train stably at component discriminator lr 2.5e-5 (run 07 has no violation in 10,000 iterations) and can be re-enabled, but they need a larger dataset and a quality benchmark before they earn a place in the default config.
 - The facial component losses of GFP-GAN are disabled. They were the first source of instability and have not been re-tested on the stable base.
 - Stability was shown for one seed and one small dataset.
+
+## The model damages a face that is already good
+
+The background model had this defect and it was measured and corrected in `background_super_resolution.md`: trained only on heavy degradation, it read genuine texture as noise and scored below plain Lanczos once the input was clean. The face path uses the same style of degradation pipeline, so the same failure was plausible and had never been measured.
+
+There is no Lanczos here, because the face model reconstructs at a fixed 512x512 rather than upscaling. The baseline is therefore the degraded input itself, passed through untouched: on a near-identity degradation a healthy restorer should stay at or above that line. Measured on the 256 held-out faces of `ffhq512full/val_gt`, verified disjoint from the 69,674 used for training, over the first 64:
+
+| Regime | Untouched input | Model @100k | Model wins |
+|---|---|---|---|
+| Training degradation | 21.14 / 0.6199 | **22.69** / 0.6117 | 40 / 64 |
+| Near identity | **38.61 / 0.9680** | 26.33 / 0.7503 | **0 / 64** |
+
+In its own regime the model does its job, beating the untouched input by 1.55 dB. On a clean input it scores **12.28 dB below doing nothing at all**, and loses on every single face. For scale, the background model lost 1.06 dB in the same situation.
+
+A generative restorer resynthesises even a good face, and PSNR and SSIM punish resynthesis harshly, so the metrics alone would not settle whether this is damage or an artefact of the measurement. Inspection settles it: the output shows colour fringing along hair edges, mangles background foliage into coloured noise, and reworks skin and glasses, while the untouched input is plainly closer to the ground truth.
+
+**The practical severity is lower than the numbers suggest.** Most of the visible damage is in hair and background, and `GFPGANer` pastes back only the aligned face region through a feathered mask, so much of it never reaches the output. That reduces the urgency; it does not make the model correct.
+
+### The remedy, implemented but not yet trained
+
+`mild_prob` on `FFHQDegradationDataset` draws a sample whose degradation is close to the identity, the same correction already validated for the background, where 0.5 closed the whole gap at no cost on the degraded set. It is implemented in the dataset rather than the model because that is where face degradation is built, and it selects parameters into local names instead of writing them onto `self`: the dataset runs in several worker processes, and mutating instance state per sample would be a race. It defaults to 0, leaving every existing config byte-identical.
+
+The experiment that would settle it mirrors the background work and is now costed rather than guessed: run 10 trained 100,000 iterations in 16h47, about 0.59 s per iteration, so two arms of 5,000 iterations resumed from `net_g_100000.pth` -- a control at `mild_prob` 0 and a treatment at 0.5 -- cost roughly 50 minutes each plus evaluation. The control arm is not optional: without it, any change could be attributed to the extra iterations rather than to the mixture.
+
+### A seeding trap found while testing this
+
+`basicsr` draws the blur kernel type with `random.choices`, from the standard library generator rather than numpy or torch. A test that seeds only `np.random` and `torch` leaves that draw to whatever ambient global state the process is in, so two identically configured datasets pick different kernels and disagree. This made the equivalence test pass inside the full suite and fail when run on its own, producing two stable values that swapped places with construction order. Two plausible diagnoses came first and neither survived measurement: a shared `io_backend` dictionary, and a first-call effect from building the `FileClient`. Any test over this dataset must seed all three generators.
