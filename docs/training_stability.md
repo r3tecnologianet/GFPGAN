@@ -438,21 +438,50 @@ There is no Lanczos here, because the face model reconstructs at a fixed 512x512
 
 | Regime | Untouched input | Model @100k | Model wins |
 |---|---|---|---|
-| Training degradation | 21.14 / 0.6199 | **22.69** / 0.6117 | 40 / 64 |
-| Near identity | **38.61 / 0.9680** | 26.33 / 0.7503 | **0 / 64** |
+| Training degradation | 20.70 / 0.6133 | **22.85** / 0.6185 | 41 / 64 |
+| Near identity | **38.61 / 0.9680** | 26.34 / 0.7504 | **0 / 64** |
 
-In its own regime the model does its job, beating the untouched input by 1.55 dB. On a clean input it scores **12.28 dB below doing nothing at all**, and loses on every single face. For scale, the background model lost 1.06 dB in the same situation.
+In its own regime the model does its job, beating the untouched input by 2.15 dB on average. On a clean input it scores **12.28 dB below doing nothing at all**, and loses on every single face. For scale, the background model lost 1.06 dB in the same situation.
+
+The training-degradation row replaces an earlier one that read 21.14 / 22.69. That row was not reproducible and should not be cited: it was produced before the seeding trap below was understood, so its blur kernels came from whatever ambient state the process happened to be in. The near-identity row is unaffected, because its kernel list has a single entry, and it reproduces to the digit.
+
+**The average gain is not the typical gain.** The +2.15 dB is a mean over a strongly right-skewed distribution; the *median* face gains only +0.74 dB. A minority of badly degraded faces improve enormously and carry the average. Any single number quoted for this model should say which one it is.
 
 A generative restorer resynthesises even a good face, and PSNR and SSIM punish resynthesis harshly, so the metrics alone would not settle whether this is damage or an artefact of the measurement. Inspection settles it: the output shows colour fringing along hair edges, mangles background foliage into coloured noise, and reworks skin and glasses, while the untouched input is plainly closer to the ground truth.
 
 **The practical severity is lower than the numbers suggest.** Most of the visible damage is in hair and background, and `GFPGANer` pastes back only the aligned face region through a feathered mask, so much of it never reaches the output. That reduces the urgency; it does not make the model correct.
 
-### The remedy, implemented but not yet trained
+### The remedy, measured
 
-`mild_prob` on `FFHQDegradationDataset` draws a sample whose degradation is close to the identity, the same correction already validated for the background, where 0.5 closed the whole gap at no cost on the degraded set. It is implemented in the dataset rather than the model because that is where face degradation is built, and it selects parameters into local names instead of writing them onto `self`: the dataset runs in several worker processes, and mutating instance state per sample would be a race. It defaults to 0, leaving every existing config byte-identical.
+`mild_prob` on `FFHQDegradationDataset` draws a sample whose degradation is close to the identity, the same correction already validated for the background. It is implemented in the dataset rather than the model because that is where face degradation is built, and it selects parameters into local names instead of writing them onto `self`: the dataset runs in several worker processes, and mutating instance state per sample would be a race. It defaults to 0, leaving every existing config byte-identical.
 
-The experiment that would settle it mirrors the background work and is now costed rather than guessed: run 10 trained 100,000 iterations in 16h47, about 0.59 s per iteration, so two arms of 5,000 iterations resumed from `net_g_100000.pth` -- a control at `mild_prob` 0 and a treatment at 0.5 -- cost roughly 50 minutes each plus evaluation. The control arm is not optional: without it, any change could be attributed to the extra iterations rather than to the mixture.
+Three arms were finetuned from `net_g_100000.pth` for 5,000 iterations, with configurations that differ in exactly one key, verified mechanically rather than by reading them: a control at `mild_prob` 0, a treatment at 0.5, and a third drawing a continuous severity from Beta(0.5, 1), the law CResMD (arXiv:1912.05293) uses for the same purpose. Learning rates were the decayed values in force at iteration 100,000, and `remove_pyramid_loss` was set to 0 so the pyramid loss stayed off as it was at that point: the iteration counter restarts at zero on a finetune, so leaving it at 50,000 would silently have switched a loss back on.
+
+One difference between the code that was measured and the code that ships is worth knowing before reproducing this. The arms ran from a working tree that expressed the mild sample as a continuous severity, whose severity-zero path sets `jpeg_range` to [100, 100]; the committed branch sets it to [99, 100]. Every other parameter of the mild sample is identical. The direction is conservative: the arms trained on samples marginally cleaner than the near-identity regime they were then judged on, which uses [99, 100].
+
+Against the untouched input, on the near-identity regime where the defect lives:
+
+| Model | PSNR / SSIM | vs untouched input | Wins |
+|---|---|---|---|
+| Model @100k | 26.34 / 0.7504 | -12.276 dB | 0 / 64 |
+| Control @5k | 26.22 / 0.7453 | -12.398 dB | 0 / 64 |
+| **`mild_prob` 0.5 @5k** | **28.13 / 0.7788** | **-10.487 dB** | 0 / 64 |
+| Beta(0.5, 1) @5k | 28.12 / 0.7782 | -10.499 dB | 0 / 64 |
+
+Read as paired per-image deltas, which is what the arms must be judged on:
+
+- **The control earns its cost.** 5,000 further iterations of the unchanged recipe do not repair the defect; they deepen it slightly, by 0.122 dB [0.059, 0.191], losing to the original on 44 of 64 faces. Any improvement in the other arms is therefore attributable to the mixture and not to the extra training.
+- **`mild_prob` 0.5 beats the control by 1.911 dB** [1.762, 2.075], median 1.837, **on 64 of 64 faces**, and also wins the degraded regime by 0.138 dB at the median on 44 of 64. There is no trade-off between the two regimes here, which the perception-distortion tradeoff would have permitted but does not require.
+- **The continuous law buys nothing.** Beta(0.5, 1) against the two-point draw is +0.012 dB [-0.043, +0.066], p=0.52, 32 of 64 -- a tie bounded to within 0.066 dB, not a tie for want of statistical power. At 1,250 iterations the simpler law was marginally ahead (+0.082 dB, p=0.0015). The extra option, the extra dataset branch and the four-parameter interpolation are not paid for.
+
+**What it does not do.** It closes 1.9 dB of a 12.4 dB hole, about 15%, and the returns diminish sharply: going from 1,250 to 5,000 iterations, four times the compute, moved the treatment only 0.43 dB further. Closing the rest by this route alone is not plausible. The model still loses to its own untouched input on every clean face.
+
+**One cost to record.** On the degraded regime the treatments lose a little SSIM while gaining PSNR (0.6167 and 0.6085 against the control's 0.6182), even as SSIM improves markedly on clean input (0.7788 against 0.7453). The gain is not free on every metric.
+
+The whole experiment cost 3h04 of GPU, of which 27 minutes were wasted: the first attempt was killed for system memory in the middle of writing a checkpoint and left a truncated, unreadable file. Checkpoints were written every 1,250 iterations thereafter, which made a later kill cost almost nothing.
 
 ### A seeding trap found while testing this
 
 `basicsr` draws the blur kernel type with `random.choices`, from the standard library generator rather than numpy or torch. A test that seeds only `np.random` and `torch` leaves that draw to whatever ambient global state the process is in, so two identically configured datasets pick different kernels and disagree. This made the equivalence test pass inside the full suite and fail when run on its own, producing two stable values that swapped places with construction order. Two plausible diagnoses came first and neither survived measurement: a shared `io_backend` dictionary, and a first-call effect from building the `FileClient`. Any test over this dataset must seed all three generators.
+
+The trap was not confined to tests. The training-degradation row of the table above had to be replaced because the measurement that produced it seeded only numpy and torch, so its kernels were drawn from ambient state and the numbers could not be reproduced. A published measurement, not just a flaky test, had been quietly contaminated. `eval_face_mild.py` now seeds all three generators in one function, and re-running it twice returns figures identical to the last decimal.

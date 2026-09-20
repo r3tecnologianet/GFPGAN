@@ -76,9 +76,12 @@ file.
 - **No pretrained generative prior.** Upstream starts from a StyleGAN2 trained on FFHQ; here the decoder trains
   from scratch, which is the main reason its restorations are weaker on real photographs.
 - **The face model damages an input that is already good.** Measured on 64 held-out faces, it scores 12.28 dB
-  below leaving the input untouched once that input is clean, and loses on all 64. `mild_prob` on
-  `FFHQDegradationDataset` is the remedy already validated for the background, but it has not been trained yet.
-  Details and the cost of the experiment are in `docs/training_stability.md`.
+  below leaving the input untouched once that input is clean, and loses on all 64. `mild_prob` 0.5, now the
+  default in `options/train_gfpgan_clean.yml`, recovers 1.9 dB of that on every one of the 64 and gains a little
+  on the degraded regime as well, against a control that proves the extra iterations alone do not help. It
+  closes only about 15% of the hole and the returns diminish sharply, so the defect stays open. A continuous
+  Beta severity law was measured against it and tied to within 0.066 dB. Details in
+  `docs/training_stability.md`.
 - **Licensed corpus.** Training currently uses FFHQ as a stand-in, so the weights are for evaluation only.
 - **Release weights.** The official checkpoints stay out of this repository, and the build produced here is not a
   release candidate.
