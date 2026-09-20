@@ -31,6 +31,15 @@ python inference_gfpgan.py -i <image_or_folder> -o results --model_path <weights
 ```
 `--arch` accepts `clean | RestoreFormer`. `--aligned` skips detection for pre-cropped 512x512 faces. The input folder must contain only images.
 
+`--bg_model <weights.pth>` upscales the background with super-resolution weights instead of Lanczos, which stays the default. The architecture and scale are read from the checkpoint itself (`gfpgan/bg_upsampler.py`), and nothing is downloaded. Evidence for the model this was built for is in `docs/background_super_resolution.md`.
+
+A pixel-loss checkpoint and its adversarial continuation can be blended into one file instead of choosing between them, which is network interpolation (arXiv:1811.10515), and costs no training:
+
+```bash
+python scripts/interpolate_sr_weights.py --pixel A.pth --gan B.pth --alpha 0.5 -o blended.pth
+```
+`--alpha` 0 keeps the pixel model and 1 the adversarial one; pick it on validation, since the trade is real (PSNR peaked at 0.5 here while SSIM fell monotonically).
+
 Facial component boxes for a folder of aligned 512x512 training faces:
 ```bash
 python scripts/generate_component_boxes.py -i <aligned_faces_dir> -o <component_boxes.pth>
