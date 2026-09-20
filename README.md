@@ -2,7 +2,13 @@
   <img src="assets/gfpgan_logo.png" height=130>
 </p>
 
-> **License cleanup branch.** Components with non-commercial restrictions (NVIDIA StyleGAN2 CUDA ops, DFDNet-derived code, ParseNet, Real-ESRGAN background upsampling, release weights, face images and training configs) were removed or disabled. The rest of this README still describes upstream GFPGAN. See [LICENSE_CLEANUP.md](LICENSE_CLEANUP.md) for what was removed, what remains and what must be rewritten or retrained.
+> **License cleanup branch — what this is.** The code and the training pipeline are free of components with non-commercial restrictions: the NVIDIA StyleGAN2 CUDA ops, DFDNet-derived code, ParseNet, the VGG19 perceptual loss and the Real-ESRGAN background upsampler are gone or replaced.
+>
+> **The face weights are yours to supply, and that is permanent.** `inference_gfpgan.py` requires `--model_path` and downloads nothing. Every public face restorer, this one included, rests on FFHQ, which is non-commercial — and a survey of the alternatives found no face corpus that is both licensed for commercial use and collected with the subjects' consent, so this is not a gap waiting to be filled. A copyright licence on a photograph does not carry the depicted person's consent, and biometric regimes attach independently of who owns the image. See [LICENSE_CLEANUP.md](LICENSE_CLEANUP.md).
+>
+> **The background weights are the exception.** `--bg_model` takes a super-resolution model trained here on CC0 photographs of scenery, which carry no biometric data, so unlike the face model it can be distributed. Evidence in [docs/background_super_resolution.md](docs/background_super_resolution.md).
+>
+> The rest of this README still describes upstream GFPGAN.
 
 ## <div align="center"><b><a href="README.md">English</a> | <a href="README_CN.md">简体中文</a></b></div>
 
