@@ -14,7 +14,62 @@ Branch `license-cleanup`, based on `7552a77` (TencentARC/GFPGAN). Goal: remove o
 | Training configs | Resolved | `0c12b14` | `options/train_gfpgan_clean.yml`; training settings shown stable over 10,000 iterations on 9927 aligned faces, with the facial component Gram style loss off (`docs/training_stability.md`) |
 | Identity loss (ArcFace) | Open | — | Disabled; needs a face recognition model trained on licensed data |
 | No pretrained generative prior | Open | — | The config trains GFPGANv1Clean from scratch (`decoder_load_path: ~`) at generator learning rate 2.5e-5; a StyleGAN2 prior trained on licensed data does not exist |
-| Weights | Open | — | All release weights are trained on FFHQ. Retraining needs a licensed face dataset, which does not exist; not attempted |
+| Weights (face) | Open, and not solvable by downloading anything | — | All release weights are trained on FFHQ. Retraining needs a face corpus that is both licensed for commercial use and collected with the subjects' consent. A survey of the field found exactly one, and it is three orders of magnitude too small. See "Why there is no face corpus" below |
+| Weights (background) | Resolved | — | `--bg_model` takes super-resolution weights trained here on CC0 photographs. Scenery and objects carry no biometric data and no likeness right, so unlike the face model this one is distributable. `docs/background_super_resolution.md` |
+
+## Why there is no face corpus
+
+The branch removed every restricted component and left one blocker: FFHQ is CC BY-NC-SA 4.0, so no weight trained
+on it can be shipped. The obvious repair is to train on something else. Two surveys of the field, one of consented
+and commercially licensed corpora and one of synthetic faces, found that nothing downloadable qualifies. Technical
+analysis, not legal advice; what follows is what the sources say.
+
+**Three independent gates, and a copyright licence only opens the first.** Creative Commons says so in its own
+text: CC BY 4.0 section 2(b) does not license "publicity, privacy, and/or other similar personality rights", and
+CC0 section 4(c) has the affirmer disclaim "responsibility for clearing rights of other persons". A CC0 photograph
+is a settled question about the photographer and an open one about everyone visible in it. Biometric regimes
+attach independently of who owns the image: GDPR Article 4(14) names facial images and Article 9 requires explicit
+consent for processing that uniquely identifies, and EU AI Act Article 5(1)(e), applicable since 2 February 2025,
+prohibits creating or expanding facial recognition databases by untargeted scraping of facial images.
+
+**Exactly one corpus passes both gates.** The Face Research Lab London Set is CC BY 4.0 with signed consent
+covering altered forms -- and holds about 1,000 images of 102 adults, roughly 0.2 per cent of FFHQ. It is usable
+for evaluation, not for training a prior. Everything else fails one gate or the other, and the two are
+anti-correlated: the properly consented sets (Casual Conversations, Chicago Face Database, FERET) are contractually
+research-only, and the commercially licensed image pools (Unsplash Lite, Open Images, CC BY Flickr) carry no
+subject consent at all.
+
+**Synthetic faces move the problem rather than solve it.** Every GAN or diffusion face corpus traces back to FFHQ
+or CASIA-WebFace through its generator. The rendered corpora have the best provenance in the field -- Microsoft's
+DigiFace-1M and Face Synthetics derive from 511 consented 3D scans plus artist-authored assets -- and are closed by
+the most explicit clause found anywhere: their Research Use of Data Agreement makes "artificial intelligence models
+trained on Data" into "Results" and bars using the Data or any Results in a commercial offering. It is the one
+licence that names the trained weights, so there is nothing to interpret.
+
+**The enforcement reaches the model.** In the FTC's Everalbum/Paravision order the remedy was to delete the models
+developed from biometric data collected without consent, not to pay a fine. EDPB Opinion 28/2024 contemplates
+erasure of the model itself and puts a duty on the deployer to verify the model was not developed unlawfully. A
+consent defect in a corpus therefore propagates into the checkpoint and into whoever ships it, which is why this
+cannot be treated as a licensing detail to be resolved later.
+
+**Buying it is not a shortcut either.** No face-data vendor surveyed publishes a participant release form. The two
+that publish licence text at all disclaim every warranty -- Defined.ai's reads "THE DATA IS PROVIDED 'AS IS' AND
+LICENSOR HEREBY DISCLAIMS ALL WARRANTIES" -- and their consent language sits in supplier codes of conduct, which
+bind the vendor's suppliers rather than promising anything to the buyer. Every "fully consented" claim found was
+product-page marketing rather than a term of sale, and none publishes a price. The protection actually needed, a
+representation that each subject signed a release covering machine learning training and sublicensable commercial
+use, with indemnity and a copy of the form, appears in none of the published terms and would have to be negotiated
+from nothing. Part of the reason is structural: BIPA section 15(c) bars a private entity from selling, leasing,
+trading or otherwise profiting from biometric information, which is a problem for the vendor's business model and
+not only for the buyer's use.
+
+**What this leaves.** Three routes, none of them a download and none of them quick: commission a collection with
+documented consent, negotiate a vendor contract that carries the consent representations no published terms
+currently offer, or ship the code and the training pipeline and let users bring weights they are entitled to. `inference_gfpgan.py` already implements the third -- it requires
+`--model_path` and downloads nothing -- so the branch is closer to a defensible position than the open blocker
+suggests, provided "commercially usable" is understood to mean the code and the pipeline rather than the face
+weights. Every public face restorer shares this failure: CodeFormer is non-commercial, GPEN ships no licence at
+all, and GFPGAN's own release weights state no terms, all of them resting on FFHQ.
 
 ## Removed
 
