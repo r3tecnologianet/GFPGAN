@@ -80,7 +80,10 @@ file.
   default in `options/train_gfpgan_clean.yml`, recovers 1.9 dB of that on every one of the 64 and gains a little
   on the degraded regime as well, against a control that proves the extra iterations alone do not help. It
   closes only about 15% of the hole and the returns diminish sharply, so the defect stays open. A continuous
-  Beta severity law was measured against it and tied to within 0.066 dB. Details in
+  Beta severity law was measured against it and tied to within 0.066 dB. The rest is now traded at inference
+  instead: `-w/--weight` blends the restoration back toward the input, and its default of 0.75 buys 2.0 dB on a
+  clean face, on 64 of 64, at no measurable cost on a degraded one. That is a mitigation, not a repair -- the
+  model still cannot improve on a good input, only avoid spoiling it. Details in
   `docs/training_stability.md`.
 - **Licensed corpus.** Training currently uses FFHQ as a stand-in, so the weights are for evaluation only.
 - **Release weights.** The official checkpoints stay out of this repository, and the build produced here is not a

@@ -33,7 +33,15 @@ def main():
         type=str,
         default='auto',
         help='Image extension. Options: auto | jpg | png, auto means using the same extension as inputs. Default: auto')
-    parser.add_argument('-w', '--weight', type=float, default=0.5, help='Adjustable weights.')
+    parser.add_argument(
+        '-w',
+        '--weight',
+        type=float,
+        default=0.75,
+        help='How much of the restoration to keep, from 0 to 1. At 1 the output is the restored face, at 0 the '
+        'aligned input untouched, in between a blend. Lower it when the input is already good, since the model '
+        'damages a clean face. The default was measured, not chosen: see docs/training_stability.md. Default: '
+        '0.75')
     parser.add_argument(
         '--bg_model',
         type=str,

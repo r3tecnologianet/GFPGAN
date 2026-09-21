@@ -480,6 +480,45 @@ Read as paired per-image deltas, which is what the arms must be judged on:
 
 The whole experiment cost 3h04 of GPU, of which 27 minutes were wasted: the first attempt was killed for system memory in the middle of writing a checkpoint and left a truncated, unreadable file. Checkpoints were written every 1,250 iterations thereafter, which made a later kill cost almost nothing.
 
+### The rest of the hole is bought at inference, not in training
+
+Training can only go so far, so the remaining trade is exposed as a dial. `gfpgan/utils.py:blend_restoration`
+blends the restored face back toward the aligned input: at 1 the output is the restoration, at 0 the input
+untouched. This is network interpolation (arXiv:1811.10515) taken to the image, and it costs no training.
+
+The flag for it already existed. `inference_gfpgan.py` has always had `-w/--weight`, default 0.5, advertised as
+"Adjustable weights" -- and it did nothing. `GFPGANv1Clean.forward` accepts `**kwargs` and never reads it, and
+`RestoreFormer` does the same, so the value was discarded on both architectures. It is inherited from upstream,
+not introduced here; `master` has the identical signature and the removed non-clean architecture did not use it
+either. No test covered it and no document mentioned it, which is how it survived.
+
+Swept over 64 held-out faces with the `mild_prob` 0.5 model, against the untouched input:
+
+| weight | Degraded: PSNR / SSIM / wins | Near identity: PSNR / SSIM / wins |
+|---|---|---|
+| 0 | 20.70 / 0.6133 / -- | 38.61 / 0.9680 / -- |
+| 0.25 | 21.61 / 0.6403 / **64 of 64** | 35.85 / 0.9449 / 0 of 64 |
+| 0.5 | 22.40 / **0.6462** / 62 of 64 | 32.71 / 0.9000 / 0 of 64 |
+| **0.75** | 22.94 / 0.6372 / 58 of 64 | 30.17 / 0.8421 / 0 of 64 |
+| 1 | **23.01** / 0.6168 / 44 of 64 | 28.12 / 0.7789 / 0 of 64 |
+
+**The default is 0.75 because 1 is dominated, not because 0.75 is a compromise.** Against 1, at 0.75 the
+degraded regime is statistically indistinguishable (-0.069 dB, [-0.306, +0.153], p=0.29) while its median and
+its SSIM are both better, and the near-identity regime improves by 2.044 dB on 64 of 64 faces. Going further
+down to 0.5 does cost the degraded regime for real (-0.540 dB, p=0.0078), so the dial stops there.
+
+**The mean hid this.** On the degraded regime the mean keeps rising to weight 1, which is why full restoration
+looks best if only means are read. The win count falls monotonically over the same range, from 64 of 64 at 0.25
+to 44 of 64 at 1: at full strength the model loses to its own input on 20 of 64 *degraded* faces. The mean is
+carried by a minority of badly degraded faces that gain several decibels; the typical face does better blended.
+
+**Two honest caveats.** First, PSNR and SSIM reward blending toward the input almost by construction when the
+input is already close to the ground truth, so the near-identity column overstates how much is really won there;
+what the dial trades away is resynthesised detail, which these metrics punish rather than credit. Second,
+blending two images can ghost edges that neither shows alone. The measurement says 0.75 is safe on fidelity, not
+that it is sharper. The best weight also depends on the model -- for the 100k checkpoint 0.75 beats 1 on the
+mean as well -- which is the argument for a dial rather than a constant.
+
 ### A seeding trap found while testing this
 
 `basicsr` draws the blur kernel type with `random.choices`, from the standard library generator rather than numpy or torch. A test that seeds only `np.random` and `torch` leaves that draw to whatever ambient global state the process is in, so two identically configured datasets pick different kernels and disagree. This made the equivalence test pass inside the full suite and fail when run on its own, producing two stable values that swapped places with construction order. Two plausible diagnoses came first and neither survived measurement: a shared `io_backend` dictionary, and a first-call effect from building the `FileClient`. Any test over this dataset must seed all three generators.

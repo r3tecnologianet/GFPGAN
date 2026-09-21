@@ -11,6 +11,37 @@ from gfpgan.face_helper import FaceHelper
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
+def blend_restoration(restored, original, weight):
+    """Blend a restored face back toward the face that went in.
+
+    A generative restorer resynthesises even a good face, so on an input that is already clean this model scores
+    12.4 dB below simply doing nothing, losing on 64 of 64 held-out faces. Training on a mixture that includes
+    near-identity samples (`mild_prob`) recovers about 15% of that and the returns diminish sharply, so the rest
+    has to be bought somewhere else. This is that dial, applied at inference and costing no training: at 0 the
+    output is the input untouched, at 1 it is the restoration, and in between the trade is continuous. It is
+    network interpolation (arXiv:1811.10515) taken to the image, the technique this branch already uses to blend
+    the background upsampler's two checkpoints. Evidence for both is in `docs/training_stability.md`.
+
+    The trade is real in both directions: lowering the weight protects a good input and weakens the restoration
+    of a badly degraded one. There is no value that is best for every image.
+
+    Args:
+        restored (ndarray): the restored face, uint8 BGR.
+        original (ndarray): the aligned input face it was restored from, same shape and dtype.
+        weight (float): how much of the restoration to keep, in [0, 1].
+    """
+    if not 0.0 <= weight <= 1.0:
+        raise ValueError(f'weight must be in [0, 1], got {weight}')
+    if restored.shape != original.shape:
+        raise ValueError(f'cannot blend shapes {restored.shape} and {original.shape}')
+    if weight == 1.0:
+        return restored
+    if weight == 0.0:
+        return original
+    # addWeighted saturates and rounds; doing this in numpy would truncate and darken every blended pixel.
+    return cv2.addWeighted(restored, weight, original, 1.0 - weight, 0.0)
+
+
 class GFPGANer():
     """Helper for restoration with GFPGAN.
 
@@ -77,7 +108,7 @@ class GFPGANer():
         self.gfpgan = self.gfpgan.to(self.device)
 
     @torch.no_grad()
-    def enhance(self, img, has_aligned=False, only_center_face=False, paste_back=True, weight=0.5):
+    def enhance(self, img, has_aligned=False, only_center_face=False, paste_back=True, weight=0.75):
         self.face_helper.clean_all()
 
         if has_aligned:  # the inputs are already aligned
@@ -99,9 +130,13 @@ class GFPGANer():
             cropped_face_t = cropped_face_t.unsqueeze(0).to(self.device)
 
             try:
-                output = self.gfpgan(cropped_face_t, return_rgb=False, weight=weight)[0]
+                # weight is deliberately not passed to the network. Neither architecture here uses it: both
+                # accept **kwargs and discard it, so the flag has never done anything. It is applied below, on
+                # the image, where it can.
+                output = self.gfpgan(cropped_face_t, return_rgb=False)[0]
                 # convert to image
                 restored_face = tensor2img(output.squeeze(0), rgb2bgr=True, min_max=(-1, 1))
+                restored_face = blend_restoration(restored_face.astype('uint8'), cropped_face, weight)
             except RuntimeError as error:
                 print(f'\tFailed inference for GFPGAN: {error}.')
                 restored_face = cropped_face

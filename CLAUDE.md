@@ -33,6 +33,8 @@ python inference_gfpgan.py -i <image_or_folder> -o results --model_path <weights
 
 `--bg_model <weights.pth>` upscales the background with super-resolution weights instead of Lanczos, which stays the default. The architecture and scale are read from the checkpoint itself (`gfpgan/bg_upsampler.py`), and nothing is downloaded. Evidence for the model this was built for is in `docs/background_super_resolution.md`.
 
+`-w/--weight` (default 0.75) blends the restored face back toward the aligned input in `gfpgan/utils.py:blend_restoration`: 1 is the restoration, 0 the input untouched. The model damages a face that is already good, so full strength is not the safe setting; the default comes from a sweep in `docs/training_stability.md`, where 0.75 dominates 1 in both regimes. Before that sweep the flag was passed to the network, which discarded it, so it had never done anything.
+
 A pixel-loss checkpoint and its adversarial continuation can be blended into one file instead of choosing between them, which is network interpolation (arXiv:1811.10515), and costs no training:
 
 ```bash
@@ -72,7 +74,7 @@ yapf -r -d gfpgan/ scripts/ inference_gfpgan.py setup.py
 **Registry auto-discovery.** `gfpgan/archs/__init__.py`, `gfpgan/models/__init__.py` and `gfpgan/data/__init__.py` import every file ending in `_arch.py`, `_model.py` and `_dataset.py` respectively, so their classes register into BasicSR's `ARCH_REGISTRY` / `MODEL_REGISTRY` / `DATASET_REGISTRY`. New components must follow that filename suffix and use the `@..._REGISTRY.register()` decorator; YAML configs refer to them by class name.
 
 **Architectures:**
-- `gfpganv1_clean_arch.py` + `stylegan2_clean_arch.py` (`clean`): U-Net encoder whose features modulate a pure-PyTorch StyleGAN2 decoder via channel-split SFT layers (`sft_half`); `forward(x, return_rgb, weight)` returns `(image, rgb_pyramid)`.
+- `gfpganv1_clean_arch.py` + `stylegan2_clean_arch.py` (`clean`): U-Net encoder whose features modulate a pure-PyTorch StyleGAN2 decoder via channel-split SFT layers (`sft_half`); `forward(x, return_latents, return_rgb, randomize_noise, **kwargs)` returns `(image, rgb_pyramid)`. It takes no blend weight: `**kwargs` is never read, so anything else passed is silently discarded. That is why the inference `--weight` is applied to the image by `gfpgan/utils.py:blend_restoration` rather than inside the network.
 - `discriminator_arch.py`: `StyleGAN2DiscriminatorClean` (global; `forward(x, return_feats)` returns logits, or logits and block features) and `FacialComponentDiscriminatorClean` (always returns `(patch_logits, feats_or_None)`, two feature maps for the Gram style loss).
 - `restoreformer_arch.py` (`RestoreFormer`): a separate transformer-based restorer plugged into the same inference pipeline.
 - `arcface_arch.py`: identity network; not used by the clean config.
