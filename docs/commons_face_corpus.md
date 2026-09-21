@@ -103,6 +103,19 @@ would buy roughly 3,950 further crops at the measured rate, and -- the part that
 collected to increase diversity -- a population five times less concentrated. Whether share-alike reaches
 trained weights remains unsettled, so this is a trade to decide rather than a repair to apply.
 
+**Decided on 2026-09-21 by the project owner: CC BY-SA is admitted, and collection extended to it.** The
+order was built from the metadata already cached for all 42,971 described candidates, so no new API pass
+was needed, and it applies the same gates as the first collection -- JPEG or PNG, not imported from
+Flickr, thumbnail at least 512 px on the short side -- differing only in the licence predicate. It holds
+33,564 files.
+
+What this costs is worth stating plainly next to what it buys. Share-alike is a condition on derivatives,
+and whether a trained weight is a derivative of its training images has no settled answer; this branch
+exists to avoid exactly that kind of open question, and admitting CC BY-SA accepts one deliberately in
+exchange for a corpus roughly five times larger and materially less concentrated. Every row keeps its
+`Artist`, `Credit` and licence URL, so the attribution the licence requires can be produced. The decision
+does not touch the code or the background weights, only the face corpus.
+
 ## What this does not settle
 
 **The subject's rights.** CC0 section 4(c) has the affirmer disclaim responsibility for clearing the
