@@ -67,6 +67,42 @@ the measured throughput on the RTX 3060 Ti is 28.2 img/s at 512² with batch 4 -
 not implement. Adaptive augmentation, which the sibling project has implemented, is the technique that
 exists for corpora this small.
 
+## The licence filter manufactures a demographic skew
+
+Inspection of the crops showed most of the people in them to be Black, which is not what a corpus drawn
+from Wikimedia Commons at large would look like. The cause is measurable, and it is the licence filter.
+
+Counting the candidate titles that fall into a handful of upload clusters -- francophone Wikimedia
+outreach events, Wikimedia user groups, Côte d'Ivoire, Nigeria, an Iranian cluster -- the concentration
+rises at every stage of the funnel:
+
+| Population | In those clusters |
+|---|---|
+| All 42,971 candidates | 9.4% |
+| The 7,433 admitted by licence, non-Flickr and size | 30.8% |
+| The 800 that yielded a face crop | 44.0% |
+
+Split by licence over the same query and the same describe step, so the populations are matched. These rows
+count the licence gate alone, before the Flickr and size exclusions, which is why the admitted row here is
+8,861 rather than the 7,433 that survive all three:
+
+| Licence | Files | In those clusters |
+|---|---|---|
+| CC BY-SA (excluded) | 34,071 | **5.2%** |
+| CC0 and public domain | 5,058 | 30.7% |
+| CC BY | 3,803 | 19.5% |
+| **Admitted by licence alone (CC0/PD + CC BY)** | 8,861 | **25.9%** |
+
+The breadth is in the share-alike population that this project excludes. CC BY-SA is the default licence
+for most Commons uploads, so what survives a CC0/PD/CC BY filter is disproportionately organised outreach
+photography from particular communities, and the face-crop step concentrates it further because event
+photographs are close-range group portraits that yield large faces.
+
+This is a cost of the licence decision that was not visible before the corpus existed. Relaxing CC BY-SA
+would buy roughly 3,950 further crops at the measured rate, and -- the part that matters for a corpus
+collected to increase diversity -- a population five times less concentrated. Whether share-alike reaches
+trained weights remains unsettled, so this is a trade to decide rather than a repair to apply.
+
 ## What this does not settle
 
 **The subject's rights.** CC0 section 4(c) has the affirmer disclaim responsibility for clearing the
@@ -74,8 +110,17 @@ rights of other persons, and CC BY 4.0 section 2(b) does not license personality
 the photographer. Neither this repository nor the sibling project documents a position on the depicted
 person, and for weights meant to be distributed that is the gate that matters, not the crop count.
 
-**The usable fraction.** The 876 crops are unreviewed. PD12M's hand review kept 44%, and no automatic
-filter works, so this number needs a person. `labels.html` is generated and waiting in the data directory.
+**The usable fraction is 81.4%, and it is not the bottleneck.** The 876 crops were reviewed by hand:
+711 of 874 labelled crops are usable, against PD12M's 44%. Thirty crops were repeated inside the sheet to
+measure the reviewer, and 28 of the 30 were judged the same way twice. Colour is no longer a confound
+either -- 619 of the labelled crops are colour against 10 monochrome -- so the classifier that failed on
+PD12M by being a colour detector would have had almost nothing to detect here. Applying the rate to the
+327 new crops leaves about 266 usable faces that were not already held.
+
+`face_quality.py report` cannot read this run: it expects the `eligible` and `total` keys that its own
+`order` subcommand writes, and a Commons order is built by `commons_order.py`, which records `candidates`
+and `kept` instead. The figures above were computed from `labels.jsonl` directly rather than by changing
+the sibling project's tooling.
 
 **812 downloads failed, and the cause is unknown.** Two hypotheses were tested and both were refuted.
 Concurrency throttling: a retry with a single worker and no concurrency downloaded 15 of 429. Transfer
