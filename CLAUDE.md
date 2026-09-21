@@ -33,7 +33,7 @@ python inference_gfpgan.py -i <image_or_folder> -o results --model_path <weights
 
 `--bg_model <weights.pth>` upscales the background with super-resolution weights instead of Lanczos, which stays the default. The architecture and scale are read from the checkpoint itself (`gfpgan/bg_upsampler.py`), and nothing is downloaded. Evidence for the model this was built for is in `docs/background_super_resolution.md`.
 
-`-w/--weight` (default 0.75) blends the restored face back toward the aligned input in `gfpgan/utils.py:blend_restoration`: 1 is the restoration, 0 the input untouched. The model damages a face that is already good, so full strength is not the safe setting; the default comes from a sweep in `docs/training_stability.md`, where 0.75 dominates 1 in both regimes. Before that sweep the flag was passed to the network, which discarded it, so it had never done anything.
+`-w/--weight` (default 0.75, the constant `gfpgan.utils.DEFAULT_BLEND_WEIGHT` that the library and the command line both read) blends the restored face back toward the aligned input in `gfpgan/utils.py:blend_restoration`: 1 is the restoration, 0 the aligned 512 crop unchanged. That is the input image itself only under `--aligned`; on the whole-image path the face is still warped to 512 and pasted back through the feathered mask, so `-w 0` is not a no-op on the photograph. The model damages a face that is already good, so full strength is not the safe setting; the default comes from a sweep in `docs/training_stability.md`, measured on aligned crops, where 0.75 dominates 1 in both regimes. Before that sweep the flag was passed to the network, which discarded it, so it had never done anything.
 
 A pixel-loss checkpoint and its adversarial continuation can be blended into one file instead of choosing between them, which is network interpolation (arXiv:1811.10515), and costs no training:
 
@@ -68,6 +68,7 @@ flake8 .
 isort --check-only --diff gfpgan/ scripts/ inference_gfpgan.py setup.py
 yapf -r -d gfpgan/ scripts/ inference_gfpgan.py setup.py
 ```
+`flake8` does not catch every syntax error, so run `python -m py_compile` on files you changed as well. It reports `E999` for something like `def f(:`, but exits 0 on `g(a=1, a=2)` (`SyntaxError: keyword argument repeated`), with and without this repository's configuration, while `py_compile` rejects both. A file that Python cannot parse therefore passes the lint step here and in CI, and only the tests fail.
 
 ## Architecture
 

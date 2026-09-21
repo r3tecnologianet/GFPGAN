@@ -10,6 +10,11 @@ from gfpgan.face_helper import FaceHelper
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# Both the library and the command line need a default blend weight, and they have to agree. They live in
+# different files, so the value lives here and neither states it twice. 0.75 was measured, not chosen: see
+# docs/training_stability.md.
+DEFAULT_BLEND_WEIGHT = 0.75
+
 
 def blend_restoration(restored, original, weight):
     """Blend a restored face back toward the face that went in.
@@ -34,10 +39,16 @@ def blend_restoration(restored, original, weight):
         raise ValueError(f'weight must be in [0, 1], got {weight}')
     if restored.shape != original.shape:
         raise ValueError(f'cannot blend shapes {restored.shape} and {original.shape}')
+    if restored.dtype != original.dtype:
+        # cv2.addWeighted would raise cv2.error here, which is not a RuntimeError and so slips past the
+        # fallback in enhance below. Failing like the shape check does keeps it diagnosable.
+        raise ValueError(f'cannot blend dtypes {restored.dtype} and {original.dtype}')
+    # The endpoints copy instead of handing back the caller's own array. This is a public helper, and a caller
+    # that writes into the returned blend would otherwise be writing into its own input.
     if weight == 1.0:
-        return restored
+        return restored.copy()
     if weight == 0.0:
-        return original
+        return original.copy()
     # addWeighted saturates and rounds; doing this in numpy would truncate and darken every blended pixel.
     return cv2.addWeighted(restored, weight, original, 1.0 - weight, 0.0)
 
@@ -108,7 +119,7 @@ class GFPGANer():
         self.gfpgan = self.gfpgan.to(self.device)
 
     @torch.no_grad()
-    def enhance(self, img, has_aligned=False, only_center_face=False, paste_back=True, weight=0.75):
+    def enhance(self, img, has_aligned=False, only_center_face=False, paste_back=True, weight=DEFAULT_BLEND_WEIGHT):
         self.face_helper.clean_all()
 
         if has_aligned:  # the inputs are already aligned
@@ -136,7 +147,10 @@ class GFPGANer():
                 output = self.gfpgan(cropped_face_t, return_rgb=False)[0]
                 # convert to image
                 restored_face = tensor2img(output.squeeze(0), rgb2bgr=True, min_max=(-1, 1))
-                restored_face = blend_restoration(restored_face.astype('uint8'), cropped_face, weight)
+                # cropped_face is uint8 on every path through face_helper, but a caller can hand enhance a
+                # float image, and the code above already assumes a 0-255 range by dividing by 255. Coercing
+                # keeps that caller working instead of failing inside OpenCV.
+                restored_face = blend_restoration(restored_face.astype('uint8'), cropped_face.astype('uint8'), weight)
             except RuntimeError as error:
                 print(f'\tFailed inference for GFPGAN: {error}.')
                 restored_face = cropped_face

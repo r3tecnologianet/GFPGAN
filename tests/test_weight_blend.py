@@ -1,14 +1,27 @@
 import inspect
 import numpy as np
+import os
 import pytest
+import sys
 
-from gfpgan.utils import GFPGANer, blend_restoration
+from gfpgan.utils import DEFAULT_BLEND_WEIGHT, GFPGANer, blend_restoration
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from inference_gfpgan import build_parser  # noqa: E402
 
 
 def test_the_default_weight_is_the_one_the_sweep_chose():
-    """0.75 came from a measurement, not from taste, and drifting back to full strength would lose 2 dB on a
-    clean face on every one of the 64 tested. The command line default must not disagree with this one."""
-    assert inspect.signature(GFPGANer.enhance).parameters['weight'].default == 0.75
+    """0.75 came from a measurement, not from taste: drifting back to full strength would lose 2 dB on a clean
+    face on every one of the 64 tested."""
+    assert DEFAULT_BLEND_WEIGHT == 0.75
+
+
+def test_the_library_and_the_command_line_cannot_disagree():
+    """The two defaults live in different files and disagreed once already, so both read one constant. The
+    command line side is checked by parsing it rather than by trusting that it still imports the constant."""
+    parsed = build_parser().parse_args(['-i', 'in', '--model_path', 'w.pth']).weight
+    assert parsed == DEFAULT_BLEND_WEIGHT
+    assert inspect.signature(GFPGANer.enhance).parameters['weight'].default == DEFAULT_BLEND_WEIGHT
 
 
 def _pair(shape=(8, 6, 3)):
@@ -69,3 +82,29 @@ def test_mismatched_shapes_are_refused():
     restored, _ = _pair()
     with pytest.raises(ValueError):
         blend_restoration(restored, np.zeros((4, 4, 3), np.uint8), 0.5)
+
+
+def test_a_dtype_mismatch_is_refused_as_a_value_error():
+    """cv2.addWeighted raises cv2.error on mismatched dtypes, which is not a RuntimeError and so slips past the
+    fallback in enhance, surfacing as an opaque OpenCV message instead of returning the untouched face."""
+    restored, _ = _pair()
+    with pytest.raises(ValueError):
+        blend_restoration(restored, restored.astype(np.float32), 0.5)
+
+
+@pytest.mark.parametrize('weight', [0.0, 1.0])
+def test_the_endpoints_do_not_alias_the_caller_arrays(weight):
+    """At the endpoints there is nothing to compute, but handing back the caller's own array would mean that
+    writing into the returned blend writes into the input it came from."""
+    restored, original = _pair()
+    out = blend_restoration(restored, original, weight)
+    out[0, 0, 0] = 7
+    assert restored[0, 0, 0] != 7 and original[0, 0, 0] != 7
+
+
+@pytest.mark.parametrize('bad', ['-0.1', '1.5', '2'])
+def test_the_command_line_refuses_a_weight_outside_the_range(bad):
+    """Rejected while parsing, before the model is loaded and before any output file is written: left to the
+    per-face loop it would abort a folder run partway through, having already written the faceless images."""
+    with pytest.raises(SystemExit):
+        build_parser().parse_args(['-i', 'in', '--model_path', 'w.pth', '-w', bad])

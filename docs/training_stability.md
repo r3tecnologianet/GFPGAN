@@ -512,12 +512,15 @@ looks best if only means are read. The win count falls monotonically over the sa
 to 44 of 64 at 1: at full strength the model loses to its own input on 20 of 64 *degraded* faces. The mean is
 carried by a minority of badly degraded faces that gain several decibels; the typical face does better blended.
 
-**Two honest caveats.** First, PSNR and SSIM reward blending toward the input almost by construction when the
+**Three honest caveats.** First, PSNR and SSIM reward blending toward the input almost by construction when the
 input is already close to the ground truth, so the near-identity column overstates how much is really won there;
 what the dial trades away is resynthesised detail, which these metrics punish rather than credit. Second,
 blending two images can ghost edges that neither shows alone. The measurement says 0.75 is safe on fidelity, not
-that it is sharper. The best weight also depends on the model -- for the 100k checkpoint 0.75 beats 1 on the
-mean as well -- which is the argument for a dial rather than a constant.
+that it is sharper. Third, the sweep ran on aligned 512 crops fed straight to the network, which is the
+`--aligned` path. On the whole-image path the face is additionally warped to 512 and warped back through a
+feathered mask, so weight 0 returns the aligned crop rather than the original photograph, and the resampling
+that surrounds the blend is not part of what was measured. The best weight also depends on the model -- for the
+100k checkpoint 0.75 beats 1 on the mean as well -- which is the argument for a dial rather than a constant.
 
 ### A seeding trap found while testing this
 

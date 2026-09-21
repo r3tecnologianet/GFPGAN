@@ -7,14 +7,24 @@ from basicsr.utils import imwrite
 
 from gfpgan import GFPGANer
 from gfpgan.bg_upsampler import SRBackgroundUpsampler
+from gfpgan.utils import DEFAULT_BLEND_WEIGHT
 
 
-def main():
-    """Inference demo for GFPGAN (for users).
+def _blend_weight(value):
+    """Reject a weight outside [0, 1] while parsing rather than inside the per-face loop.
 
-    Pretrained weights are not downloaded automatically: the official release weights are trained on
-    non-commercial data. Pass weights you are licensed to use with --model_path.
+    Left to the loop, the failure arrives after the model has been loaded and after earlier images have already
+    been written, so the run aborts on the first photograph containing a face and leaves a half-filled output
+    folder behind.
     """
+    weight = float(value)
+    if not 0.0 <= weight <= 1.0:
+        raise argparse.ArgumentTypeError(f'must be between 0 and 1, got {weight}')
+    return weight
+
+
+def build_parser():
+    """Built here rather than inside main so that a test can read what the flags default to."""
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input', type=str, required=True, help='Input image or folder.')
     parser.add_argument('-o', '--output', type=str, default='results', help='Output folder. Default: results')
@@ -36,19 +46,29 @@ def main():
     parser.add_argument(
         '-w',
         '--weight',
-        type=float,
-        default=0.75,
-        help='How much of the restoration to keep, from 0 to 1. At 1 the output is the restored face, at 0 the '
-        'aligned input untouched, in between a blend. Lower it when the input is already good, since the model '
-        'damages a clean face. The default was measured, not chosen: see docs/training_stability.md. Default: '
-        '0.75')
+        type=_blend_weight,
+        default=DEFAULT_BLEND_WEIGHT,
+        help='How much of the restoration to keep, from 0 to 1. At 1 the output is the restored face; at 0 the '
+        'aligned 512 crop passes through unchanged, which is the input itself only with --aligned, since '
+        'otherwise the face is still warped to 512 and pasted back. Lower it when the input is already good, '
+        'since the model damages a clean face. The default was measured on aligned crops rather than chosen: '
+        'see docs/training_stability.md. Default: 0.75')
     parser.add_argument(
         '--bg_model',
         type=str,
         default=None,
         help='Path to licensed super-resolution weights for the background. Default: none, which upscales the '
         'background with Lanczos.')
-    args = parser.parse_args()
+    return parser
+
+
+def main():
+    """Inference demo for GFPGAN (for users).
+
+    Pretrained weights are not downloaded automatically: the official release weights are trained on
+    non-commercial data. Pass weights you are licensed to use with --model_path.
+    """
+    args = build_parser().parse_args()
 
     # ------------------------ input & output ------------------------
     if args.input.endswith('/'):
