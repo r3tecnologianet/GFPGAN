@@ -24,6 +24,12 @@ on it can be shipped. The obvious repair is to train on something else. Two surv
 and commercially licensed corpora and one of synthetic faces, found that nothing downloadable qualifies. Technical
 analysis, not legal advice; what follows is what the sources say.
 
+The largest pool that does clear the copyright gate has since been collected to exhaustion rather than sampled:
+every Wikimedia Commons file that is CC0, public domain or CC BY, not imported from Flickr, tagged as a photograph
+of a human and at least 512 px yields 876 face crops, of which 327 were not already held. FFHQ holds 70,000. The
+measurement, the sources ruled out on the way, and what it leaves open are in
+[docs/commons_face_corpus.md](docs/commons_face_corpus.md).
+
 **Three independent gates, and a copyright licence only opens the first.** Creative Commons says so in its own
 text: CC BY 4.0 section 2(b) does not license "publicity, privacy, and/or other similar personality rights", and
 CC0 section 4(c) has the affirmer disclaim "responsibility for clearing rights of other persons". A CC0 photograph
