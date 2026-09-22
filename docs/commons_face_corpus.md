@@ -31,8 +31,10 @@ Flickr imports identifiable by their own metadata with no FFHQ artefact involved
 ## Method
 
 Candidates are files with structured "depicts: human" and "photograph" statements, minus files marked as
-imported from Flickr. Admitted licences are CC0, public domain and CC BY in any version; CC BY-SA is
-excluded because whether share-alike reaches trained weights is unsettled. Each file must be at least
+imported from Flickr. Admitted licences were CC0, public domain and CC BY in any version, with CC BY-SA
+excluded because whether share-alike reaches trained weights is unsettled. That exclusion was lifted later
+the same day, for the reason measured below; the figures in the next two sections are the collection made
+under it. Each file must be at least
 512 px on its short side, and is downloaded bounded to a 2,048 px box.
 
 ## Result: the pool is 7,433 files and yields 876 crops
@@ -58,8 +60,9 @@ images overlap. The genuinely new material is **299 images and 327 crops**.
 
 The whole admissible Commons pool -- every file that is CC0, public domain or CC BY, not imported from
 Flickr, tagged as a photograph of a human, and at least 512 px -- produces 876 face crops, 327 of them new.
-FFHQ holds 70,000 curated faces. The gap is not one more crawl: it is two orders of magnitude, and the
-pool is now exhausted rather than sampled.
+FFHQ holds 70,000 curated faces. The gap is not one more crawl: it is two orders of magnitude, and this
+pool is exhausted rather than sampled -- exhausted under the licence filter of the day, which is what the
+decision below goes on to change.
 
 Training a StyleGAN2 prior at this scale is the decision that follows, not "collect more". For reference,
 the measured throughput on the RTX 3060 Ti is 28.2 img/s at 512² with batch 4 -- and only batch 4 fits in
@@ -98,16 +101,23 @@ for most Commons uploads, so what survives a CC0/PD/CC BY filter is disproportio
 photography from particular communities, and the face-crop step concentrates it further because event
 photographs are close-range group portraits that yield large faces.
 
-This is a cost of the licence decision that was not visible before the corpus existed. Relaxing CC BY-SA
-would buy roughly 3,950 further crops at the measured rate, and -- the part that matters for a corpus
-collected to increase diversity -- a population five times less concentrated. Whether share-alike reaches
-trained weights remains unsettled, so this is a trade to decide rather than a repair to apply.
+This is a cost of the licence decision that was not visible before the corpus existed. Relaxing CC BY-SA would buy
+roughly 3,950 further crops at the rate measured on the admitted pool, and -- the part that matters for a corpus
+collected to increase diversity -- a population five times less concentrated. Whether share-alike reaches trained
+weights remains unsettled, so this is a trade to decide rather than a repair to apply.
 
 **Decided on 2026-09-21 by the project owner: CC BY-SA is admitted, and collection extended to it.** The
 order was built from the metadata already cached for all 42,971 described candidates, so no new API pass
 was needed, and it applies the same gates as the first collection -- JPEG or PNG, not imported from
 Flickr, thumbnail at least 512 px on the short side -- differing only in the licence predicate. It holds
 33,564 files.
+
+**The rate does not transfer, measured at 8,688 images in.** CC BY-SA yields 76.3 crops per 1,000
+against 117.9 for the admitted pool, so the 3,950 estimated above is closer to 2,560 for the whole
+order. The mechanism is the same one that makes this population worth collecting: the outreach clusters
+the licence filter had concentrated are close-range group portraits, which is exactly what yields a face
+of 512 px. Breadth and yield move against each other here, and the estimate that assumed otherwise was
+built on a rate the skew measurement itself should have warned against.
 
 What this costs is worth stating plainly next to what it buys. Share-alike is a condition on derivatives,
 and whether a trained weight is a derivative of its training images has no settled answer; this branch
