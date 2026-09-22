@@ -30,12 +30,11 @@ Flickr imports identifiable by their own metadata with no FFHQ artefact involved
 
 ## Method
 
-Candidates are files with structured "depicts: human" and "photograph" statements, minus files marked as
-imported from Flickr. Admitted licences were CC0, public domain and CC BY in any version, with CC BY-SA
-excluded because whether share-alike reaches trained weights is unsettled. That exclusion was lifted later
-the same day, for the reason measured below; the figures in the next two sections are the collection made
-under it. Each file must be at least
-512 px on its short side, and is downloaded bounded to a 2,048 px box.
+Candidates are files with structured "depicts: human" and "photograph" statements, minus files marked as imported from
+Flickr. Admitted licences were CC0, public domain and CC BY in any version, with CC BY-SA excluded because whether
+share-alike reaches trained weights is unsettled. That exclusion was lifted later the same day, for the reason
+measured below; the figures in the next two sections are the collection made under it. Each file must be at least 512
+px on its short side, and is downloaded bounded to a 2,048 px box.
 
 ## Result: the pool is 7,433 files and yields 876 crops
 
@@ -112,12 +111,14 @@ was needed, and it applies the same gates as the first collection -- JPEG or PNG
 Flickr, thumbnail at least 512 px on the short side -- differing only in the licence predicate. It holds
 33,564 files.
 
-**The rate does not transfer, measured at 8,688 images in.** CC BY-SA yields 76.3 crops per 1,000
-against 117.9 for the admitted pool, so the 3,950 estimated above is closer to 2,560 for the whole
-order. The mechanism is the same one that makes this population worth collecting: the outreach clusters
-the licence filter had concentrated are close-range group portraits, which is exactly what yields a face
-of 512 px. Breadth and yield move against each other here, and the estimate that assumed otherwise was
+**The rate does not transfer, and the whole order is now collected.** CC BY-SA yields 79.3 crops per 1,000 against
+117.9 for the admitted pool: all 33,564 files downloaded and 2,662 crops came out, against the 3,950 first estimated
+and the 2,560 estimated once the real rate was visible. The mechanism is the one that makes this population worth
+collecting. The outreach clusters the licence filter had concentrated are close-range group portraits, which is
+exactly what yields a face of 512 px, so breadth and yield move against each other here and the first estimate was
 built on a rate the skew measurement itself should have warned against.
+
+Commons has now given 3,538 crops in total, 876 under the original licence filter and 2,662 under the widened one.
 
 What this costs is worth stating plainly next to what it buys. Share-alike is a condition on derivatives,
 and whether a trained weight is a derivative of its training images has no settled answer; this branch
@@ -185,12 +186,21 @@ distributing.
 and `kept` instead. The figures above were computed from `labels.jsonl` directly rather than by changing
 the sibling project's tooling.
 
-**812 downloads failed, and the cause is unknown.** Two hypotheses were tested and both were refuted.
-Concurrency throttling: a retry with a single worker and no concurrency downloaded 15 of 429. Transfer
-size: the served size is identical in both groups (median 2.80 Mpx), and the failed group's *originals*
-are smaller, not larger (median 7.99 against 12.98 Mpx), which is the opposite of a timeout on large
-files. A sampled HEAD probe returned 200 for 30 of 30, which proves only that the URLs resolve -- HEAD
-transfers no body, so it could not distinguish the hypotheses, and reading it as evidence of a transient
-fault was a mistake. `download()` in `corpus_yield.py` catches `URLError`, `TimeoutError` and `OSError`
-alike and returns `None` without recording a reason, so the information was discarded at the point of
-failure. The failures are worth about 96 crops, which does not change any conclusion above.
+**812 downloads failed in the first collection, and the CC BY-SA run identified the cause.** Two hypotheses had been
+tested and refuted: concurrency throttling, since a retry with a single worker downloaded 15 of 429, and transfer
+size, since the served bytes are identical in both groups and the failed group's originals are smaller rather than
+larger. A sampled HEAD probe returned 200 for 30 of 30, which proved only that the URLs resolve, and reading it as
+evidence of a transient fault was a mistake: HEAD transfers no body.
+
+The CC BY-SA collection made the mechanism visible by being large enough to show its shape. Download success was 100%
+for the first 22,000 images and then collapsed: 36% in the block ending at 24,000 and 0% for every block after it.
+That is a cliff in time, not a property of the images, and it burned through the remaining 10,847 rows at 7.5 images a
+second because a request that fails transfers nothing. Re-running exactly those 10,847 rows hours later, at two
+workers instead of four, downloaded 100% of them and yielded 78.7 crops per 1,000, the same rate as the rest of the
+run.
+
+So the cause is sustained request pressure on a server that renders thumbnails on demand, not the URLs and not the
+file sizes. The single-worker retry that seemed to refute throttling had been run inside the same blocked window,
+which is why it recovered nothing. `download()` in `corpus_yield.py` catches `URLError`, `TimeoutError` and `OSError`
+alike and returns `None` without recording a reason, which is what made a visible block look like scattered random
+loss for two collections in a row.
