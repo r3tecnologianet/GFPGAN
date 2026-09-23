@@ -182,33 +182,42 @@ the classifier that failed on PD12M by being a colour detector would have had al
 The usable crops were aligned into a training set with `build_dataset.py`. Each step drops faces for a
 different reason, and one of them is a trap worth naming:
 
-| Stage | Faces |
-|---|---|
-| Labelled crops | 874 |
-| Usable, unanimous rule | 709 |
-| Kept after pruning those without component boxes | 686 |
-| Aligned to 512x512 | 683 (3 failed alignment) |
-| With facial component boxes | 683 of 683 |
-| Split of the aligned, seed 0 | 619 training, 64 validation |
+| Stage | CC0 / CC BY | CC BY-SA | Combined |
+|---|---|---|---|
+| Crops collected | 876 | 2,662 | 3,538 |
+| Offered for review | 874 | 1,757 (capped by series) | — |
+| Usable, unanimous rule | 709 (81.1%) | 815 (46.5%) | **1,524** |
+| Kept after pruning those without component boxes | — | — | 1,484 |
+| Aligned to 512x512 | — | — | 1,478 (6 failed) |
+| With facial component boxes | — | — | 1,478 of 1,478 |
+| Split of the aligned, seed 0 | — | — | **1,414 training, 64 validation** |
 
-**The prune is not optional.** A first build aligned all 709 and then found boxes for only 683 of them:
-23 faces are unreadable, not square, or show no face on the second detection pass. Boxes are not a filter,
-they are a lookup, and `FFHQDegradationDataset` reads them with a bare subscript,
-`self.component_boxes[name]`, guarded only by `crop_components`. Since
-`options/train_gfpgan_clean.yml` sets `crop_components: true`, those 23 faces would have raised a
-`KeyError` inside a dataloader worker at a random iteration rather than at startup. Pruning them before
-aligning costs 3.2% of an already small corpus and makes the shipped config work as written; the three
-alignment failures are the same three in both builds, since they fail alignment rather than box
-generation.
+The two pools review very differently: 81.1% of the CC0 and CC BY crops are usable against 46.5% of the CC BY-SA ones,
+and within CC BY-SA the rate falls with series size -- 52.5% for photographs belonging to no series, then 37.6%, 30.1%
+and 30.5% for series of 2-4, 5-9 and 10 or more. The reviewer was rejecting repeated people as well as poor
+photographs, and event photography is worse on both counts at once.
 
-It lives at `/mnt/dados/gfpgan-clean/faces-commons-683`, outside the repository, in the same shape as the
+**The prune is not optional.** A first build aligned all 1,524 usable crops and then found component boxes for only
+1,478 of them: 40 faces are unreadable, not square, or show no face on the second detection pass. Boxes are a lookup
+rather than a filter, and `FFHQDegradationDataset` reads them with a bare subscript, `self.component_boxes[name]`,
+guarded only by `crop_components`. Since `options/train_gfpgan_clean.yml` sets `crop_components: true`, those 40 faces
+would have raised a `KeyError` inside a dataloader worker at a random iteration rather than at startup. Pruning them
+before aligning costs 2.6% of an already small corpus and makes the shipped config work as written. The six alignment
+failures recur in both builds, since they fail alignment rather than box generation.
+
+The prune also has to map an aligned filename back to the crop it came from, and guessing that mapping is how the
+first attempt failed: `build_dataset.py` names an aligned face after the *parent* directory of the crop folder, not
+the folder itself, so a prefix assembled by hand matched 11 of the 40 and pruned nothing. `manifest.jsonl` records
+`name` beside `source_file` for every face, which is the authoritative mapping and was there the whole time.
+
+It lives at `/mnt/dados/gfpgan-clean/faces-commons-final`, outside the repository, in the same shape as the
 other corpora: `aligned512/`, `train_gt/`, `val_gt/`, `val_lq/`, `component_boxes.pth` and a
 `manifest.jsonl` recording where each face came from. Every face in both splits has a box, which was
 verified rather than assumed.
 
-Ready is not the same as sufficient. 619 training faces is nine thousandths of FFHQ, and the corpus
-carries the skew measured below, so what it can support is a stability or ablation run, not a prior worth
-distributing.
+Ready is not the same as sufficient. 1,414 training faces is 2% of FFHQ. Admitting CC BY-SA a little more than doubled
+the corpus, from 619 training faces to 1,414, and that is the ceiling: both licence pools are exhausted rather than
+sampled. What this supports is a stability or ablation run, not a prior worth distributing.
 
 `face_quality.py report` cannot read this run: it expects the `eligible` and `total` keys that its own
 `order` subcommand writes, and a Commons order is built by `commons_order.py`, which records `candidates`

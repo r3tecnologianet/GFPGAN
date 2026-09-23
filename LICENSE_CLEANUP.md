@@ -24,10 +24,15 @@ on it can be shipped. The obvious repair is to train on something else. Two surv
 and commercially licensed corpora and one of synthetic faces, found that nothing downloadable qualifies. Technical
 analysis, not legal advice; what follows is what the sources say.
 
-The largest pool that does clear the copyright gate has since been collected to exhaustion rather than sampled:
-every Wikimedia Commons file that is CC0, public domain or CC BY, not imported from Flickr, tagged as a photograph
-of a human and at least 512 px yields 876 face crops, of which 327 were not already held. FFHQ holds 70,000. The
-measurement, the sources ruled out on the way, and what it leaves open are in
+The largest pool that clears the copyright gate has since been collected to exhaustion rather than sampled, twice.
+Every Wikimedia Commons file tagged as a photograph of a human, not imported from Flickr and at least 512 px gave 876
+face crops under a CC0, public domain and CC BY filter. The project owner then admitted CC BY-SA on 2026-09-21,
+accepting an unsettled share-alike question in exchange for breadth, which added 2,662 crops. Hand review kept 1,524
+of the 3,538, and the aligned corpus is 1,478 faces, 1,414 of them training.
+
+That is 2% of FFHQ's 70,000, and it is the ceiling of this source rather than a sample of it. The measurement, the
+sources ruled out on the way -- PD12M on quality, every Flickr pool because the list that would remove FFHQ's own
+photographs is itself CC BY-NC-SA -- and what it leaves open are in
 [docs/commons_face_corpus.md](docs/commons_face_corpus.md).
 
 **Three independent gates, and a copyright licence only opens the first.** Creative Commons says so in its own
