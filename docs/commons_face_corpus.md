@@ -120,6 +120,35 @@ built on a rate the skew measurement itself should have warned against.
 
 Commons has now given 3,538 crops in total, 876 under the original licence filter and 2,662 under the widened one.
 
+### Two fifths of the crops are the same people
+
+The reviewer opened the sheet and reported significant duplication. Pixel-level duplication is not what it is: a
+difference hash over all 2,662 crops finds 3 identical pairs and 10 near-duplicates within a Hamming distance of 4,
+and multiple faces cropped from one photograph account for only 226 crops, since 2,662 crops come from 2,436 distinct
+images. Measuring that first answered the wrong question.
+
+The duplication is by event series. Grouping source titles by their series name -- the file title with any trailing
+sequence number removed -- gives 1,388 series, and the 69 series holding five or more photographs account for 1,079
+crops, 40.5% of the total. The largest are conference and outreach sets: 93 photographs and 126 crops from one
+Iberoconf 2023 session, 44 and 69 from a single lecture, 51 and 59 from one editathon opening. These are the same
+speakers and attendees photographed dozens of times, which inflates the count without adding identities and biases a
+prior toward those faces.
+
+The clusters also moved with the licence. The CC0 and CC BY pool concentrated in francophone African outreach events;
+the CC BY-SA pool concentrates in Ibero-American ones. Different communities, the same structure: Wikimedia event
+photography is what survives any licence filter narrow enough to be usable.
+
+**Capped at three crops per series, chosen from distinct photographs.** The cap takes the corpus from 2,662 crops to
+1,757, drawn from 1,704 separate images, and touches only the 97 series that exceed it. Three crops of the same
+photograph would be one person by construction, so the selection cycles through a series' images before taking a
+second crop from any of them. A cap of one was rejected as too aggressive: a 93-photograph conference plausibly holds
+dozens of distinct people.
+
+Series is a proxy for identity, not a measurement of it. Three photographs from one series can still be the same
+speaker, and photographs from different series can be the same person. Measuring identity would need a face
+recognition model, and this branch has none it may use -- the same constraint that removed ArcFace. The grouping also
+relies on titles being numbered in sequence, which is the Wikimedia event convention but not a guarantee.
+
 What this costs is worth stating plainly next to what it buys. Share-alike is a condition on derivatives,
 and whether a trained weight is a derivative of its training images has no settled answer; this branch
 exists to avoid exactly that kind of open question, and admitting CC BY-SA accepts one deliberately in
