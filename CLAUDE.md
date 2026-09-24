@@ -57,9 +57,16 @@ A config `name` containing `debug` makes BasicSR log every iteration and validat
 Tests (`setup.cfg` sets `addopts=tests/`, so plain `pytest` runs everything; tests use CUDA when available):
 ```bash
 pytest
+pytest --cov --cov-report=term-missing                                            # needs pytest-cov; source and omit are in setup.cfg
 pytest -o addopts="" tests/test_face_helper.py::test_face_helper_align_and_paste   # single test; addopts=tests/ would also run the whole folder
 ```
 The MediaPipe tests download their models into `gfpgan/weights/` on first run and reuse them afterwards.
+`.github/workflows/tests.yml` runs the suite on Python 3.11 with CPU wheels, so a push that breaks it fails CI.
+
+Statement coverage is 79%. `tests/conftest.py` holds the doubles the inference tests share: `GFPGANer`
+hardcodes a 512x512 generator, so a constant-output stand-in and a detector that reports the alignment template
+let the wiring be tested without building the real decoder. Three quarters of what remains uncovered is
+`restoreformer_arch.py`, which the clean config never loads; excluding it, coverage is 94%.
 
 Lint (matches CI in `.github/workflows/pylint.yml`; line length 120, single quotes enforced by pre-commit):
 ```bash

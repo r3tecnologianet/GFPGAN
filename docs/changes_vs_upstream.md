@@ -5,7 +5,7 @@ Per-component status and evidence are in `LICENSE_CLEANUP.md`; the training work
 
 **Goal:** remove every component that carries commercial-use restrictions, and keep the method working.
 
-**Size of the change:** 72 files changed, 4880 insertions and 3134 deletions — 27 files removed, 27 added
+**Size of the change:** 79 files changed, 5963 insertions and 3134 deletions — 27 files removed, 34 added
 and 18 modified. Most of the insertions are documentation and tests; the code is smaller than the original.
 
 ## 1. Face detection and alignment — replaced
@@ -61,7 +61,8 @@ nothing is downloaded either way. A model trained in this fork for that slot, an
 - Added `tests/test_face_helper.py`, `tests/test_component_boxes.py`, `tests/test_discriminator_arch.py` and
   `tests/test_train_config.py`, all on synthetic images, then `tests/test_realesrgan_config.py`,
   `tests/test_realesrgan_mild.py`, `tests/test_ffhq_mild.py` and `tests/test_bg_upsampler.py` for the background
-  work. The suite went from 2 to 62 tests across 15 files.
+  work. The suite went from 2 to 130 tests across 20 files, at 79% statement coverage; `.github/workflows/tests.yml`
+runs it, which nothing did before.
 
 ## 9. New documentation
 

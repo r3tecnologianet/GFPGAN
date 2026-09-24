@@ -148,7 +148,7 @@ Environment: Python 3.11.16, torch 2.1.2+cu121, torchvision 0.16.2+cu121, numpy 
 
 | Check | Result |
 |---|---|
-| `pytest` (GPU) | 62 passed across 15 files |
+| `pytest` (GPU) | 130 passed across 20 files, 79% statement coverage |
 | `flake8 .`, `isort --check-only`, `yapf -r -d` | Pass |
 | `codespell` | Clean since `4b47098`, which told it that `THIRDPARTY` is the isort `default_section` value in `setup.cfg` rather than a misspelling |
 | Inference, random-init `clean` weights, 4 public-domain NASA portraits (not committed) | Faces detected: 4/4 in a group portrait, 1/1 in three single portraits; aligned crops checked visually |

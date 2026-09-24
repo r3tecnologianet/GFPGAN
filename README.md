@@ -117,7 +117,8 @@ measured is in [docs/training_stability.md](docs/training_stability.md).
 ## Tests and lint
 
 ```bash
-pytest                    # 62 tests; uses CUDA when available
+pytest                    # 130 tests; uses CUDA when available
+pytest --cov              # add statement coverage (needs pytest-cov)
 codespell
 flake8 .
 isort --check-only --diff gfpgan/ scripts/ inference_gfpgan.py setup.py

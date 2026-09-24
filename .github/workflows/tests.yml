@@ -1,0 +1,38 @@
+name: Tests
+
+on: [push, pull_request]
+
+jobs:
+  pytest:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # 3.11 is the ceiling: basicsr 1.4.2 imports torchvision.transforms.functional_tensor, removed in
+        # torchvision 0.17, which caps torchvision at 0.16 and therefore Python at 3.11.
+        python-version: ['3.11']
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: pip
+
+    - name: Install the pinned stack
+      run: |
+        python -m pip install --upgrade pip
+        # CPU wheels: the runner has no GPU, and the tests fall back to CPU on their own
+        pip install torch==2.1.2 torchvision==0.16.2 --index-url https://download.pytorch.org/whl/cpu
+        pip install "numpy<2"
+        # basicsr's setup.py imports torch, so it cannot be built in isolation from it
+        pip install --no-build-isolation basicsr==1.4.2
+        pip install "mediapipe==0.10.14" -r requirements.txt
+        python setup.py develop
+
+    - name: Test with coverage
+      run: |
+        pip install pytest pytest-cov
+        pytest --cov --cov-report=term-missing
