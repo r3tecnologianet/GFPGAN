@@ -1,6 +1,6 @@
 # Changes against upstream GFPGAN
 
-Executive summary of the `license-cleanup` branch against its base, commit `7552a77` of TencentARC/GFPGAN.
+Executive summary of the `main` branch against its base, commit `7552a77` of TencentARC/GFPGAN.
 Per-component status and evidence are in `LICENSE_CLEANUP.md`; the training work is in `docs/training_stability.md`.
 
 **Goal:** remove every component that carries commercial-use restrictions, and keep the method working.
@@ -61,7 +61,7 @@ nothing is downloaded either way. A model trained on this branch for that slot, 
 - Added `tests/test_face_helper.py`, `tests/test_component_boxes.py`, `tests/test_discriminator_arch.py` and
   `tests/test_train_config.py`, all on synthetic images, then `tests/test_realesrgan_config.py`,
   `tests/test_realesrgan_mild.py`, `tests/test_ffhq_mild.py` and `tests/test_bg_upsampler.py` for the background
-  work. The suite went from 2 to 35 tests.
+  work. The suite went from 2 to 62 tests across 15 files.
 
 ## 9. New documentation
 

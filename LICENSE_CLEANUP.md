@@ -1,6 +1,6 @@
 # License cleanup
 
-Branch `license-cleanup`, based on `7552a77` (TencentARC/GFPGAN). Goal: remove or replace components with commercial-use restrictions. Technical analysis, not legal advice. Evidence and sources: `gfpgan-spec/specs/license-inventory.md`.
+Branch `main`, based on `7552a77` (TencentARC/GFPGAN). Goal: remove or replace components with commercial-use restrictions. Technical analysis, not legal advice. Evidence and sources: `gfpgan-spec/specs/license-inventory.md`.
 
 ## Blocker status
 
