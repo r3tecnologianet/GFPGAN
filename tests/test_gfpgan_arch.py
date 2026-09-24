@@ -85,3 +85,30 @@ def test_gfpganv1clean():
         assert output[1][0].shape == (1, 3, 8, 8)
         assert output[1][1].shape == (1, 3, 16, 16)
         assert output[1][2].shape == (1, 3, 32, 32)
+
+
+def test_the_pyramid_outputs_are_a_side_channel():
+    """The `toRGB` layers feed the pyramid loss and nothing else, so freezing them cannot change a restoration.
+
+    That is what makes `remove_pyramid_loss` safe: once the loss is off those layers stop receiving a gradient,
+    and their drift under the old 1e-12 weight could not have affected any measurement.
+    """
+    torch.manual_seed(0)
+    net = GFPGANv1Clean(
+        out_size=32,
+        num_style_feat=512,
+        channel_multiplier=1,
+        num_mlp=8,
+        narrow=0.5,
+        sft_half=True,
+        different_w=True,
+        input_is_latent=True).eval()
+    img = torch.rand(1, 3, 32, 32) * 2 - 1
+    with torch.no_grad():
+        before, pyramid_before = net(img, return_rgb=True)
+        for name, param in net.named_parameters():
+            if name.startswith('toRGB'):
+                param.add_(torch.randn_like(param) * 10)
+        after, pyramid_after = net(img, return_rgb=True)
+    assert torch.equal(before, after), 'the restored image must not depend on them'
+    assert not torch.equal(pyramid_before[0], pyramid_after[0]), 'but the pyramid must'

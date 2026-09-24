@@ -232,9 +232,21 @@ class GFPGANModel(BaseModel):
         return pyramid_gt
 
     def get_roi_regions(self, eye_out_size=80, mouth_out_size=120):
-        face_ratio = int(self.opt['network_g']['out_size'] / 512)
-        eye_out_size *= face_ratio
-        mouth_out_size *= face_ratio
+        """Crop the eye and mouth regions from the output and the ground truth, for the component discriminators.
+
+        The default crop sizes are given in the 512 frame that `gfpgan/component_boxes.py` writes its boxes in,
+        so they scale with the generator's output size. Upstream computed that scale as `int(out_size / 512)`,
+        which is 0 for any size below 512: the crop sizes became 0 and the crops themselves were multiplied by
+        0, so the component discriminators saw blank patches and their losses were silently meaningless. Here the
+        ratio is a float, the sizes are rounded to at least one pixel, and the pixel values are left alone.
+
+        The discriminator still needs a crop it can consume: `FacialComponentDiscriminatorClean` halves the side
+        twice and then applies a 3x3 convolution, so a crop below 12 pixels fails. That puts the floor for a
+        usable `out_size` at about 128.
+        """
+        face_ratio = self.opt['network_g']['out_size'] / 512
+        eye_out_size = max(1, round(eye_out_size * face_ratio))
+        mouth_out_size = max(1, round(mouth_out_size * face_ratio))
 
         rois_eyes = []
         rois_mouths = []
@@ -253,15 +265,15 @@ class GFPGANModel(BaseModel):
         rois_mouths = torch.cat(rois_mouths, 0).to(self.device)
 
         # real images
-        all_eyes = roi_align(self.gt, boxes=rois_eyes, output_size=eye_out_size) * face_ratio
+        all_eyes = roi_align(self.gt, boxes=rois_eyes, output_size=eye_out_size)
         self.left_eyes_gt = all_eyes[0::2, :, :, :]
         self.right_eyes_gt = all_eyes[1::2, :, :, :]
-        self.mouths_gt = roi_align(self.gt, boxes=rois_mouths, output_size=mouth_out_size) * face_ratio
+        self.mouths_gt = roi_align(self.gt, boxes=rois_mouths, output_size=mouth_out_size)
         # output
-        all_eyes = roi_align(self.output, boxes=rois_eyes, output_size=eye_out_size) * face_ratio
+        all_eyes = roi_align(self.output, boxes=rois_eyes, output_size=eye_out_size)
         self.left_eyes = all_eyes[0::2, :, :, :]
         self.right_eyes = all_eyes[1::2, :, :, :]
-        self.mouths = roi_align(self.output, boxes=rois_mouths, output_size=mouth_out_size) * face_ratio
+        self.mouths = roi_align(self.output, boxes=rois_mouths, output_size=mouth_out_size)
 
     def _gram_mat(self, x):
         """Calculate Gram matrix.
@@ -299,11 +311,16 @@ class GFPGANModel(BaseModel):
             for p in self.net_d_mouth.parameters():
                 p.requires_grad = False
 
-        # image pyramid loss weight
+        # Image pyramid loss. Past `remove_pyramid_loss` it stops contributing, but it is still computed, at
+        # weight zero, because the generator's `toRGB` layers receive a gradient from nothing else: dropping the
+        # loss outright leaves them unused, which DistributedDataParallel reports as an error. Multiplying by
+        # zero keeps them in the graph with zero gradients. Upstream used 1e-12 for the same reason; zero is
+        # exact, and the terms stop being logged, so the log shows the loss as off rather than as 1e-12 noise.
         pyramid_loss_weight = self.opt['train'].get('pyramid_loss_weight', 0)
-        if pyramid_loss_weight > 0 and current_iter > self.opt['train'].get('remove_pyramid_loss', float('inf')):
-            pyramid_loss_weight = 1e-12  # very small weight to avoid unused param error
-        if pyramid_loss_weight > 0:
+        build_pyramid = pyramid_loss_weight > 0
+        if build_pyramid and current_iter > self.opt['train'].get('remove_pyramid_loss', float('inf')):
+            pyramid_loss_weight = 0.0
+        if build_pyramid:
             self.output, out_rgbs = self.net_g(self.lq, return_rgb=True)
             pyramid_gt = self.construct_img_pyramid()
         else:
@@ -323,11 +340,12 @@ class GFPGANModel(BaseModel):
                 loss_dict['l_g_pix'] = l_g_pix
 
             # image pyramid loss
-            if pyramid_loss_weight > 0:
+            if build_pyramid:
                 for i in range(0, self.log_size - 2):
                     l_pyramid = self.cri_l1(out_rgbs[i], pyramid_gt[i]) * pyramid_loss_weight
                     l_g_total += l_pyramid
-                    loss_dict[f'l_p_{2**(i+3)}'] = l_pyramid
+                    if pyramid_loss_weight > 0:
+                        loss_dict[f'l_p_{2**(i+3)}'] = l_pyramid
 
             # perceptual loss
             if self.cri_perceptual:

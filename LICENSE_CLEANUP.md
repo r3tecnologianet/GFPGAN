@@ -117,7 +117,7 @@ all, and GFPGAN's own release weights state no terms, all of them resting on FFH
 | File | Change |
 |---|---|
 | `gfpgan/utils.py` | Uses `gfpgan.face_helper.FaceHelper`; only `clean` and `RestoreFormer` architectures; `det_model` option |
-| `gfpgan/models/gfpgan_model.py` | Optional discriminator feature matching loss (`feature_matching_weight`); optional generator gradient norm clipping (`generator_grad_clip`, logs `g_grad_norm`) |
+| `gfpgan/models/gfpgan_model.py` | Optional discriminator feature matching loss (`feature_matching_weight`); optional generator gradient norm clipping (`generator_grad_clip`, logs `g_grad_norm`). Two inherited defects fixed: `get_roi_regions` scaled its crops by `int(out_size / 512)`, zero below 512, and `remove_pyramid_loss` left a 1e-12 weight that Adam restored to a full step on the `toRGB` layers (`docs/changes_vs_upstream.md`) |
 | `gfpgan/data/ffhq_degradation_dataset.py` | `crop_components` reads boxes from `component_path` and flips them with the image. JPEG quality is sampled as an integer: basicsr 1.4.2 `random_add_jpg_compression` passes a float that current OpenCV rejects (the upstream test at `7552a77` fails the same way) |
 | `inference_gfpgan.py` | No automatic weight download; `--model_path` is required; no Real-ESRGAN |
 | `requirements.txt`, `setup.cfg` | `facexlib` replaced by `mediapipe` |

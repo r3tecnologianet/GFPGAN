@@ -205,11 +205,13 @@ def test_the_gram_matrix_is_square_in_the_channel_dimension(model512):
     assert gram.shape == (2, 8, 8)
 
 
-def test_the_pyramid_loss_is_scaled_to_nothing_rather_than_removed(tmp_path):
-    """Past the threshold the weight becomes 1e-12 instead of 0, which keeps every parameter used.
+def test_the_pyramid_loss_stops_contributing_but_keeps_its_layers_in_the_graph(tmp_path):
+    """Past the threshold the weight is zero, so the terms leave the log while the layers keep their gradients.
 
-    So the losses stay in the log and only their size changes. The threshold is compared against the iteration,
-    which is why a finetune restarting at 0 puts the full weight back unless the option is set to 0 as well.
+    The generator's `toRGB` layers exist only to produce the pyramid, so they receive a gradient from nothing
+    else. Dropping the loss outright would leave them unused, which DistributedDataParallel reports as an error;
+    computing it at weight zero keeps them in the graph. The threshold is compared against the iteration, which
+    is why a finetune restarting at 0 puts the full weight back unless the option is set to 0 as well.
     """
     model = GFPGANModel(_opt(tmp_path, components=False, remove_pyramid_loss=5))
     model.feed_data(_data(with_locations=False))
@@ -217,12 +219,39 @@ def test_the_pyramid_loss_is_scaled_to_nothing_rather_than_removed(tmp_path):
     levels = ['l_p_8', 'l_p_16', 'l_p_32']
     model.optimize_parameters(current_iter=1)
     assert [k for k in model.log_dict if k.startswith('l_p_')] == levels
-    before = [model.log_dict[k] for k in levels]
+
     model.optimize_parameters(current_iter=6)
-    after = [model.log_dict[k] for k in levels]
-    assert [k for k in model.log_dict if k.startswith('l_p_')] == levels, 'the keys stay'
-    assert all(a < b * 1e-6 for a, b in zip(after, before)), (before, after)
-    assert 'l_g_pix' in model.log_dict, 'the pixel loss is not what gets scaled away'
+    assert [k for k in model.log_dict if k.startswith('l_p_')] == [], 'the log shows the loss as off'
+    assert 'l_g_pix' in model.log_dict, 'the pixel loss is not what gets switched off'
+    to_rgb_grads = [p.grad for name, p in model.net_g.named_parameters() if name.startswith('toRGB')]
+    assert to_rgb_grads and all(g is not None for g in to_rgb_grads), 'the layers must stay in the graph'
+    assert all(float(g.abs().max()) == 0.0 for g in to_rgb_grads), 'and receive exactly nothing'
+
+
+def test_the_crop_sizes_follow_the_generator_size(tmp_path):
+    """Upstream scaled by `int(out_size / 512)`, which is 0 below 512: blank crops and meaningless losses.
+
+    The component discriminators cannot consume crops this small, which is why the tests above run at 512. What
+    is checked here is that the geometry is right rather than zero.
+    """
+    model = GFPGANModel(_opt(tmp_path, components=False))
+    model.feed_data(_data())
+    model.output = model.gt
+    model.get_roi_regions(eye_out_size=80, mouth_out_size=120)
+    assert model.left_eyes.shape == (2, 3, 5, 5), 'round(80 * 32 / 512)'
+    assert model.mouths.shape == (2, 3, 8, 8), 'round(120 * 32 / 512)'
+    assert float(model.left_eyes.abs().max()) > 0, 'the crop must not be scaled away'
+    assert float(model.mouths.abs().max()) <= float(model.gt.abs().max()), 'nor scaled up'
+
+
+def test_a_crop_size_never_rounds_down_to_zero(tmp_path):
+    """At out_size 32 the mouth would round to 7.5; the floor of one pixel keeps roi_align valid at any size."""
+    model = GFPGANModel(_opt(tmp_path, components=False))
+    model.feed_data(_data())
+    model.output = model.gt
+    model.get_roi_regions(eye_out_size=1, mouth_out_size=1)
+    assert model.left_eyes.shape[-1] == 1
+    assert model.mouths.shape[-1] == 1
 
 
 def test_validation_reports_the_configured_metric(tmp_path):

@@ -5,7 +5,7 @@ Per-component status and evidence are in `LICENSE_CLEANUP.md`; the training work
 
 **Goal:** remove every component that carries commercial-use restrictions, and keep the method working.
 
-**Size of the change:** 79 files changed, 5963 insertions and 3134 deletions — 27 files removed, 34 added
+**Size of the change:** 79 files changed, 6076 insertions and 3147 deletions — 27 files removed, 34 added
 and 18 modified. Most of the insertions are documentation and tests; the code is smaller than the original.
 
 ## 1. Face detection and alignment — replaced
@@ -176,6 +176,31 @@ per fetch.
   recovered, only bracketed; the funnel's shape held under every variant tried. Both the list and this tolerance
   are now written into `docs/commons_face_corpus.md`, along with the arithmetic by which the document's two
   concentration tables confirm each other without any reconstruction at all.
+
+## 13. Two defects inherited from upstream, fixed
+
+Both were found by writing the tests in section 12 rather than by reading the code, and both are in
+`gfpgan/models/gfpgan_model.py`. Upstream at `7552a77` has each of them verbatim.
+
+**The facial component crops collapsed below `out_size` 512.** `get_roi_regions` scaled its crop sizes by
+`int(out_size / 512)`, which is 0 for every size under 512: the crop sizes became 0 and the crops themselves were
+multiplied by 0, so anyone training at 256 with `crop_components` got component discriminators fed blank patches
+and three losses that meant nothing, with no error. The ratio is now a float, the sizes round to at least one
+pixel, and the pixel values are no longer scaled at all. At 512 this is identical, because the ratio was and is
+exactly 1; at 1024 the crops are no longer multiplied by 2, which was never intentional. The component
+discriminator still needs a crop of at least 12 pixels, which puts the floor for a usable `out_size` near 128.
+
+**`remove_pyramid_loss` did not remove the pyramid loss.** Past the threshold the weight became 1e-12 rather than
+0, to keep the generator's `toRGB` layers from being reported as unused parameters by DistributedDataParallel.
+Those layers receive a gradient from nothing else, and Adam divides by the gradient's own magnitude, so a
+consistent 1e-12 signal produced a full-size step: for exactly the layers the option governs, the loss went on
+training them for the remaining 750,000 iterations of an 800,000 iteration schedule. The weight is now exactly 0,
+which freezes them, and the `l_p_*` terms stop being logged, so the log agrees with the option's name. The loss
+is still computed at weight zero, which is what keeps the parameters in the graph.
+
+No published measurement changes. The `toRGB` layers are a side channel: perturbing them by ten standard
+deviations leaves the restored image bit-identical, which `tests/test_gfpgan_arch.py` now asserts, so their drift
+could not have reached any metric in `docs/training_stability.md`.
 
 ## Still open
 
