@@ -6,7 +6,7 @@ GFPGAN is a blind face restoration method (CVPR 2021) that uses a StyleGAN2-styl
 
 ## License cleanup
 
-Branch `main` removes or replaces components with commercial-use restrictions. `LICENSE_CLEANUP.md` lists the status of each blocker, what was removed, added and kept with caveats. When changing code on this branch:
+Branch `main` removes or replaces components with commercial-use restrictions. `LICENSE_CLEANUP.md` lists the status of each blocker, what was removed, added and kept with caveats. When changing code in this fork:
 - Do not import `basicsr.ops.*` or `basicsr.archs.stylegan2_arch` (CUDA kernels under the Nvidia Source Code License-NC).
 - Do not add code derived from DFDNet, ParseNet/PSFRGAN or other non-commercial sources.
 - Do not add download URLs for the official GFPGAN, RestoreFormer, Real-ESRGAN or facexlib release weights, or face images/datasets without documented licenses.

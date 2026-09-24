@@ -530,6 +530,9 @@ The trap was not confined to tests. The training-degradation row of the table ab
 
 ## Run 13: the published recipe on the licensed Commons corpus
 
+The numbering skips 11 and 12. The three finetune arms of the previous section carry no run number and are
+identified by their `mild_prob` setting instead.
+
 The licensed corpus finally exists -- 1,414 training faces and 64 validation, collected from Wikimedia Commons under
 CC0, public domain, CC BY and CC BY-SA and reviewed by hand (`commons_face_corpus.md`). At 2% of FFHQ it cannot make a
 good prior, so the question it can answer is whether the published config stays stable on it.

@@ -20,208 +20,153 @@
 >
 > **So the honest scope is the code, the pipeline and the background weights** — with a documented recipe for
 > anyone who holds face data they are entitled to train on.
->
-> Everything below this notice is upstream's README, including the badges, demo links and download counts,
-> which report the upstream repository rather than this fork. It is kept with one edit, disclosed here: the
-> download links for the official release weights, for upstream's extra-model folders and for FFHQ have been
-> stripped from it. The prose stays as a record of what upstream distributes; the links do not, because this
-> fork must not hand out weights and datasets it cannot license.
 
-<div align="center">
-<!-- <a href="https://twitter.com/_Xintao_" style="text-decoration:none;">
-    <img src="https://user-images.githubusercontent.com/17445847/187162058-c764ced6-952f-404b-ac85-ba95cce18e7b.png" width="4%" alt="" />
-</a> -->
+[![python lint](https://github.com/r3tecnologianet/GFPGAN/actions/workflows/pylint.yml/badge.svg)](https://github.com/r3tecnologianet/GFPGAN/actions/workflows/pylint.yml)
 
-[![download](https://img.shields.io/github/downloads/TencentARC/GFPGAN/total.svg)](https://github.com/TencentARC/GFPGAN/releases)
-[![PyPI](https://img.shields.io/pypi/v/gfpgan)](https://pypi.org/project/gfpgan/)
-[![Open issue](https://img.shields.io/github/issues/TencentARC/GFPGAN)](https://github.com/TencentARC/GFPGAN/issues)
-[![Closed issue](https://img.shields.io/github/issues-closed/TencentARC/GFPGAN)](https://github.com/TencentARC/GFPGAN/issues)
-[![LICENSE](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/TencentARC/GFPGAN/blob/master/LICENSE)
-[![python lint](https://github.com/TencentARC/GFPGAN/actions/workflows/pylint.yml/badge.svg)](https://github.com/TencentARC/GFPGAN/blob/master/.github/workflows/pylint.yml)
-[![Publish-pip](https://github.com/TencentARC/GFPGAN/actions/workflows/publish-pip.yml/badge.svg)](https://github.com/TencentARC/GFPGAN/blob/master/.github/workflows/publish-pip.yml)
-</div>
+GFPGAN restores a degraded face by guiding a StyleGAN2-style decoder with features taken from the input
+itself, published as [Towards Real-World Blind Face Restoration with Generative Facial Prior](https://arxiv.org/abs/2101.04061)
+(CVPR 2021). This fork keeps the method and replaces the parts that could not be used commercially: the
+NVIDIA CUDA operators, the DFDNet-derived landmark code, ParseNet, the VGG19 perceptual loss, the RetinaFace
+detector from facexlib and the Real-ESRGAN background upsampler. Face detection, alignment and facial
+component landmarks come from **MediaPipe**; training still runs on **BasicSR**.
 
-1. :boom: **Updated** online demo: [![Replicate](https://img.shields.io/static/v1?label=Demo&message=Replicate&color=blue)](https://replicate.com/tencentarc/gfpgan). Here is the [backup](https://replicate.com/xinntao/gfpgan).
-1. :boom: **Updated** online demo: [![Huggingface Gradio](https://img.shields.io/static/v1?label=Demo&message=Huggingface%20Gradio&color=orange)](https://huggingface.co/spaces/Xintao/GFPGAN)
-1. [Colab Demo](https://colab.research.google.com/drive/1sVsoBd9AjckIXThgtZhGrHRfFI6UUYOo) for GFPGAN <a href="https://colab.research.google.com/drive/1sVsoBd9AjckIXThgtZhGrHRfFI6UUYOo"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="google colab logo"></a>; (Another [Colab Demo](https://colab.research.google.com/drive/1Oa1WwKB4M4l1GmR7CtswDVgOCOeSLChA?usp=sharing) for the original paper model)
+## Dependencies and installation
 
-<!-- 3. Online demo: [Replicate.ai](https://replicate.com/xinntao/gfpgan) (may need to sign in, return the whole image)
-4. Online demo: [Baseten.co](https://app.baseten.co/applications/Q04Lz0d/operator_views/8qZG6Bg) (backed by GPU, returns the whole image)
-5. We provide a *clean* version of GFPGAN, which can run without CUDA extensions. So that it can run in **Windows** or on **CPU mode**. -->
+Python 3.8 to 3.11, and a CUDA GPU if you have one. Everything works on CPU, more slowly; the MediaPipe
+detector and landmarker always run on CPU.
 
-> :rocket: **Thanks for your interest in our work. You may also want to check our new updates on the *tiny models* for *anime images and videos* in [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN/blob/master/docs/anime_video_model.md)** :blush:
+```bash
+git clone https://github.com/r3tecnologianet/GFPGAN.git
+cd GFPGAN
+pip install torch==2.1.2 torchvision==0.16.2 "numpy<2"
+pip install --no-build-isolation basicsr==1.4.2
+pip install "mediapipe==0.10.14" -r requirements.txt
+python setup.py develop
+```
 
-GFPGAN aims at developing a **Practical Algorithm for Real-world Face Restoration**.<br>
-It leverages rich and diverse priors encapsulated in a pretrained face GAN (*e.g.*, StyleGAN2) for blind face restoration.
+The pins are not cosmetic. basicsr 1.4.2 imports `torchvision.transforms.functional_tensor`, removed in
+torchvision 0.17, which caps torchvision at 0.16 and therefore Python at 3.11 and numpy below 2. mediapipe
+1.x needs numpy 2, so 0.10.x is what fits; it cannot run the BlazeFace full-range model, so the default
+detector is short range. MediaPipe downloads its models into `gfpgan/weights/` on first use.
 
-:triangular_flag_on_post: **Updates**
+## Inference
 
-- :white_check_mark: Add [RestoreFormer](https://github.com/wzhouxiff/RestoreFormer) inference codes.
-- :white_check_mark: Add V1.4 model, which produces slightly more details and better identity than V1.3.
-- :white_check_mark: Add **V1.3 model**, which produces **more natural** restoration results, and better results on *very low-quality* / *high-quality* inputs. See more in [Model zoo](#european_castle-model-zoo), [Comparisons.md](Comparisons.md)
-- :white_check_mark: Integrated to [Huggingface Spaces](https://huggingface.co/spaces) with [Gradio](https://github.com/gradio-app/gradio). See [Gradio Web Demo](https://huggingface.co/spaces/akhaliq/GFPGAN).
-- :white_check_mark: Support enhancing non-face regions (background) with [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN).
-- :white_check_mark: We provide a *clean* version of GFPGAN, which does not require CUDA extensions.
-- :white_check_mark: We provide an updated model without colorizing faces.
+Nothing is downloaded. Pass weights you hold and are licensed to use:
 
----
+```bash
+python inference_gfpgan.py -i <image_or_folder> -o results --model_path <weights.pth> \
+    --arch clean --channel_multiplier 2 -s 2
+```
 
-If GFPGAN is helpful in your photos/projects, please help to :star: this repo or recommend it to your friends. Thanks:blush:
-Other recommended projects:<br>
-:arrow_forward: [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN): A practical algorithm for general image restoration<br>
-:arrow_forward: [BasicSR](https://github.com/xinntao/BasicSR): An open-source image and video restoration toolbox<br>
-:arrow_forward: [facexlib](https://github.com/xinntao/facexlib): A collection that provides useful face-relation functions<br>
-:arrow_forward: [HandyView](https://github.com/xinntao/HandyView): A PyQt5-based image viewer that is handy for view and comparison<br>
+| Flag | Meaning |
+|---|---|
+| `-i`, `--input` | Image or folder. **Required.** A folder must contain only images |
+| `-o`, `--output` | Output folder. Default `results` |
+| `--model_path` | Face restoration weights. **Required** |
+| `--arch` | `clean` or `RestoreFormer`. Default `clean` |
+| `--channel_multiplier` | Channel multiplier of the `clean` architecture. Default 2 |
+| `-s`, `--upscale` | Final upsampling scale of the whole image. Default 2 |
+| `-w`, `--weight` | How much of the restoration to keep, 0 to 1. Default 0.75 |
+| `--bg_model` | Super-resolution weights for the background. Default none, which uses Lanczos |
+| `--aligned` | Input faces are already aligned 512x512 crops; skips detection |
+| `--only_center_face` | Restore only the centre face |
+| `--suffix` | Suffix for the restored face files |
+| `--ext` | `auto`, `jpg` or `png`. Default `auto` |
 
----
+Two of those deserve a paragraph.
 
-### :book: GFP-GAN: Towards Real-World Blind Face Restoration with Generative Facial Prior
+**`-w/--weight` is a real dial, and 0.75 rather than 1 is the measured default.** It blends the restored face
+back toward the aligned input in `gfpgan/utils.py:blend_restoration`: 1 is the restoration, 0 the aligned 512
+crop untouched. Under `--aligned` that crop is the input image; on the whole-image path the face is still
+warped to 512 and pasted back through the feathered mask, so `-w 0` is not a no-op on the photograph. The
+default comes from a sweep in [docs/training_stability.md](docs/training_stability.md) where 0.75 beat 1 on
+both metrics in both regimes, because the model damages a face that is already good.
 
-> [[Paper](https://arxiv.org/abs/2101.04061)] &emsp; [[Project Page](https://xinntao.github.io/projects/gfpgan)] &emsp; [Demo] <br>
-> [Xintao Wang](https://xinntao.github.io/), [Yu Li](https://yu-li.github.io/), [Honglun Zhang](https://scholar.google.com/citations?hl=en&user=KjQLROoAAAAJ), [Ying Shan](https://scholar.google.com/citations?user=4oXBp9UAAAAJ&hl=en) <br>
+**`--bg_model` replaces Lanczos on the background.** The architecture and scale are read from the checkpoint
+itself (`gfpgan/bg_upsampler.py`) and nothing is downloaded. The model this slot was built for, and the
+evidence for it, are in [docs/background_super_resolution.md](docs/background_super_resolution.md). Two
+checkpoints of it can also be blended into one without retraining, which is network interpolation
+(arXiv:1811.10515):
+
+```bash
+python scripts/interpolate_sr_weights.py --pixel A.pth --gan B.pth --alpha 0.5 -o blended.pth
+```
+
+## Training
+
+Set the dataset paths in `options/train_gfpgan_clean.yml`, then:
+
+```bash
+python gfpgan/train.py -opt options/train_gfpgan_clean.yml
+python -m torch.distributed.launch --nproc_per_node=4 --master_port=22021 \
+    gfpgan/train.py -opt options/train_gfpgan_clean.yml --launcher pytorch
+```
+
+Facial component boxes for a folder of aligned 512x512 faces, which the config's `crop_components` needs:
+
+```bash
+python scripts/generate_component_boxes.py -i <aligned_faces_dir> -o <component_boxes.pth>
+```
+
+The configuration is not a guess. Its learning rates, GAN weight, R1 interval and gradient clip were selected
+over twelve screening rounds and eleven runs, because upstream's learning rate diverges to NaN within four
+iterations when there is no pretrained prior to start from. What was tried, what diverged and what was
+measured is in [docs/training_stability.md](docs/training_stability.md).
+
+## Tests and lint
+
+```bash
+pytest                    # 62 tests; uses CUDA when available
+codespell
+flake8 .
+isort --check-only --diff gfpgan/ scripts/ inference_gfpgan.py setup.py
+yapf -r -d gfpgan/ scripts/ inference_gfpgan.py setup.py
+```
+
+The MediaPipe tests download their models on first run and reuse them afterwards.
+
+## What is documented here
+
+| Document | Contents |
+|---|---|
+| [LICENSE_CLEANUP.md](LICENSE_CLEANUP.md) | Every blocker, its status, and what was removed, added or kept with caveats |
+| [docs/changes_vs_upstream.md](docs/changes_vs_upstream.md) | Executive summary of this fork against commit `7552a77` |
+| [docs/training_stability.md](docs/training_stability.md) | The screening rounds and runs behind the training config, the comparison against official GFPGAN v1.4, and the `mild_prob` and `-w` measurements |
+| [docs/background_super_resolution.md](docs/background_super_resolution.md) | The background model: what was measured, and what was refuted |
+| [docs/commons_face_corpus.md](docs/commons_face_corpus.md) | How many licensed faces Wikimedia Commons can supply, measured to exhaustion |
+| [docs/face_restoration_alternatives.md](docs/face_restoration_alternatives.md) | CodeFormer, GPEN, VQFR and CFRNet assessed against this fork's constraints |
+| [Comparisons.md](Comparisons.md) | Why upstream's version comparison is not reproduced here |
+
+## Upstream GFPGAN
+
+This fork exists because of upstream's work, and the credit is theirs.
+
+> **GFP-GAN: Towards Real-World Blind Face Restoration with Generative Facial Prior**
+> [Xintao Wang](https://xinntao.github.io/), [Yu Li](https://yu-li.github.io/), Honglun Zhang, Ying Shan
 > Applied Research Center (ARC), Tencent PCG
+> [[Paper](https://arxiv.org/abs/2101.04061)] [[Project page](https://xinntao.github.io/projects/gfpgan)] [[Repository](https://github.com/TencentARC/GFPGAN)]
 
-<p align="center">
-  <img src="https://xinntao.github.io/projects/GFPGAN_src/gfpgan_teaser.jpg">
-</p>
-
----
-
-## :wrench: Dependencies and Installation
-
-- Python >= 3.7 (Recommend to use [Anaconda](https://www.anaconda.com/download/#linux) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html))
-- [PyTorch >= 1.7](https://pytorch.org/)
-- Option: NVIDIA GPU + [CUDA](https://developer.nvidia.com/cuda-downloads)
-- Option: Linux
-
-### Installation
-
-We now provide a *clean* version of GFPGAN, which does not require customized CUDA extensions. <br>
-The original paper model needs the NVIDIA CUDA extensions this fork removed, so its installation
-instructions are not here.
-
-1. Clone repo
-
-    ```bash
-    git clone https://github.com/TencentARC/GFPGAN.git
-    cd GFPGAN
-    ```
-
-1. Install dependent packages
-
-    ```bash
-    # Install basicsr - https://github.com/xinntao/BasicSR
-    # We use BasicSR for both training and inference
-    pip install basicsr
-
-    # Install facexlib - https://github.com/xinntao/facexlib
-    # We use face detection and face restoration helper in the facexlib package
-    pip install facexlib
-
-    pip install -r requirements.txt
-    python setup.py develop
-
-    # If you want to enhance the background (non-face) regions with Real-ESRGAN,
-    # you also need to install the realesrgan package
-    pip install realesrgan
-    ```
-
-## :zap: Quick Inference
-
-We take the v1.3 version for an example. More models can be found [here](#european_castle-model-zoo).
-
-Download pre-trained models: GFPGANv1.3.pth
-
-```bash
-# Download link removed in this fork. Put weights you are licensed to use in experiments/pretrained_models
+```bibtex
+@InProceedings{wang2021gfpgan,
+    author = {Xintao Wang and Yu Li and Honglun Zhang and Ying Shan},
+    title = {Towards Real-World Blind Face Restoration with Generative Facial Prior},
+    booktitle={The IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
+    year = {2021}
+}
 ```
 
-**Inference!**
+Upstream's released checkpoints, online demos and model zoo stay with upstream: they are trained on FFHQ, and
+this repository neither distributes nor recommends them. Its own README, badges and download counts describe
+that repository, not this one, so they are not reproduced here. GFPGAN is built on
+[BasicSR](https://github.com/xinntao/BasicSR), which this fork still uses.
 
-```bash
-python inference_gfpgan.py -i inputs/whole_imgs -o results -v 1.3 -s 2
-```
+## Licence
 
-```console
-Usage: python inference_gfpgan.py -i inputs/whole_imgs -o results -v 1.3 -s 2 [options]...
+Apache License 2.0, unchanged from upstream: see [LICENSE](LICENSE). That covers the code in this repository
+and nothing else — not the weights you bring to it, and not the images you run it on.
 
-  -h                   show this help
-  -i input             Input image or folder. Default: inputs/whole_imgs
-  -o output            Output folder. Default: results
-  -v version           GFPGAN model version. Option: 1 | 1.2 | 1.3. Default: 1.3
-  -s upscale           The final upsampling scale of the image. Default: 2
-  -bg_upsampler        background upsampler. Default: realesrgan
-  -bg_tile             Tile size for background sampler, 0 for no tile during testing. Default: 400
-  -suffix              Suffix of the restored faces
-  -only_center_face    Only restore the center face
-  -aligned             Input are aligned faces
-  -ext                 Image extension. Options: auto | jpg | png, auto means using the same extension as inputs. Default: auto
-```
+## Contact
 
-The original paper model needs the NVIDIA CUDA extensions this fork removed, so its instructions are not here.
-
-## :european_castle: Model Zoo
-
-| Version | Model Name  | Description |
-| :---: | :---:        |     :---:      |
-| V1.3 | GFPGANv1.3.pth | Based on V1.2; **more natural** restoration results; better results on very low-quality / high-quality inputs. |
-| V1.2 | GFPGANCleanv1-NoCE-C2.pth | No colorization; no CUDA extensions are required. Trained with more data with pre-processing. |
-| V1 | GFPGANv1.pth | The paper model, with colorization. |
-
-The comparisons are in [Comparisons.md](Comparisons.md).
-
-Note that V1.3 is not always better than V1.2. You may need to select different models based on your purpose and inputs.
-
-| Version | Strengths  | Weaknesses |
-| :---: | :---:        |     :---:      |
-|V1.3 |  ✓ natural outputs<br> ✓better results on very low-quality inputs <br> ✓ work on relatively high-quality inputs <br>✓ can have repeated (twice) restorations | ✗ not very sharp <br> ✗ have a slight change on identity |
-|V1.2 |  ✓ sharper output <br> ✓ with beauty makeup | ✗ some outputs are unnatural |
-
-Upstream distributes **more models (such as the discriminators)** from its own cloud folders. Those links were removed here.
-
-## :computer: Training
-
-We provide the training codes for GFPGAN (used in our paper). <br>
-You could improve it according to your own needs.
-
-**Tips**
-
-1. More high quality faces can improve the restoration quality.
-2. You may need to perform some pre-processing, such as beauty makeup.
-
-**Procedures**
-
-(You can try a simple version ( `options/train_gfpgan_v1_simple.yml`) that does not require face component landmarks.)
-
-1. Dataset preparation: FFHQ, whose link was removed here — it is the non-commercial dataset this fork exists to
-   avoid depending on
-
-1. Download pre-trained models and other data. Put them in the `experiments/pretrained_models` folder.
-    1. Pre-trained StyleGAN2 model, component locations of FFHQ and an ArcFace model. Links removed here, with the
-       reason for each in `experiments/pretrained_models/README.md`
-
-1. Modify the configuration file `options/train_gfpgan_v1.yml` accordingly.
-
-1. Training
-
-> python -m torch.distributed.launch --nproc_per_node=4 --master_port=22021 gfpgan/train.py -opt options/train_gfpgan_v1.yml --launcher pytorch
-
-## :scroll: License and Acknowledgement
-
-GFPGAN is released under Apache License Version 2.0.
-
-## BibTeX
-
-    @InProceedings{wang2021gfpgan,
-        author = {Xintao Wang and Yu Li and Honglun Zhang and Ying Shan},
-        title = {Towards Real-World Blind Face Restoration with Generative Facial Prior},
-        booktitle={The IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
-        year = {2021}
-    }
-
-## :e-mail: Contact
-
-Questions about **this fork** belong in its own issue tracker: <https://github.com/r3tecnologianet/GFPGAN/issues>.
-Questions about upstream GFPGAN belong in [TencentARC/GFPGAN](https://github.com/TencentARC/GFPGAN). Upstream
-maintainers' personal e-mail addresses stood in this section and were removed: this repository is not theirs to
-answer for.
+Questions about this fork belong in its own issue tracker:
+<https://github.com/r3tecnologianet/GFPGAN/issues>. Questions about upstream GFPGAN belong in
+[TencentARC/GFPGAN](https://github.com/TencentARC/GFPGAN).

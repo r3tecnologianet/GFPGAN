@@ -1,11 +1,11 @@
 # Changes against upstream GFPGAN
 
-Executive summary of the `main` branch against its base, commit `7552a77` of TencentARC/GFPGAN.
+Executive summary of this fork against its base, commit `7552a77` of TencentARC/GFPGAN.
 Per-component status and evidence are in `LICENSE_CLEANUP.md`; the training work is in `docs/training_stability.md`.
 
 **Goal:** remove every component that carries commercial-use restrictions, and keep the method working.
 
-**Size of the change:** 72 files changed, 4639 insertions and 2984 deletions — 27 files removed, 27 added
+**Size of the change:** 72 files changed, 4792 insertions and 3134 deletions — 27 files removed, 27 added
 and 18 modified. Most of the insertions are documentation and tests; the code is smaller than the original.
 
 ## 1. Face detection and alignment — replaced
@@ -42,7 +42,7 @@ Identity preservation is therefore not measured by anything in this repository.
 ## 6. Training configuration — rewritten and validated
 
 `options/train_gfpgan_v1.yml` became `options/train_gfpgan_clean.yml`, carrying the settings that survived twelve
-screening rounds and ten runs (`docs/training_stability.md`): generator lr 2.5e-5, global discriminator lr 2e-5,
+screening rounds and eleven runs (`docs/training_stability.md`): generator lr 2.5e-5, global discriminator lr 2e-5,
 component discriminators lr 2.5e-5, GAN weight 0.05, R1 every 4 iterations, generator gradient clipping 10, and
 the component Gram style loss off. Upstream used lr 2e-3, which diverges to NaN within 4 iterations when there is
 no pretrained prior to start from.
@@ -52,7 +52,7 @@ no pretrained prior to start from.
 `inference_gfpgan.py` no longer downloads weights: `--model_path` is required. The Real-ESRGAN background
 upsampler is gone and Lanczos is the default background. `--bg_model` accepts super-resolution weights the user
 is licensed to use, reading the architecture and scale from the checkpoint itself (`gfpgan/bg_upsampler.py`);
-nothing is downloaded either way. A model trained on this branch for that slot, and the evidence for it, are in
+nothing is downloaded either way. A model trained in this fork for that slot, and the evidence for it, are in
 `docs/background_super_resolution.md`.
 
 ## 8. Example data and tests
@@ -68,7 +68,7 @@ nothing is downloaded either way. A model trained on this branch for that slot, 
 `LICENSE_CLEANUP.md` (status of each blocker), `docs/training_stability.md` (screening rounds, runs and metrics,
 including the comparison against the official GFPGAN v1.4) and `CLAUDE.md`. Later:
 `docs/background_super_resolution.md` (the background model, what was measured and what was refuted),
-`docs/face_restoration_alternatives.md` (CodeFormer, GPEN, VQFR and CFRNet assessed against this branch) and this
+`docs/face_restoration_alternatives.md` (CodeFormer, GPEN, VQFR and CFRNet assessed against this fork) and this
 file.
 
 ## 10. Upstream documentation — audited for what a public fork may republish
@@ -86,9 +86,9 @@ caveats", which deferred the question rather than answering it.
 - Upstream maintainers' personal e-mail addresses were this fork's published contact in `README.md`, the
   address for conduct reports in `CODE_OF_CONDUCT.md`, and the `author_email` in `setup.py`. All three now
   point at this repository.
-- Upstream's README is still kept below the notice, with the download links for the release weights, for
-  upstream's extra-model folders and for FFHQ stripped out. The notice discloses that edit, since keeping the
-  prose while calling it unmodified would be the dishonest option.
+- The download links for the release weights, for upstream's extra-model folders and for FFHQ were stripped
+  out of upstream's README, which was kept below the notice with that edit disclosed. The coherence pass in
+  section 11 then replaced that text altogether.
 - `assets/gfpgan_logo.png` was upstream's mark serving as this fork's header, and `release.yml` hotlinked it
   from upstream's content host into this fork's release notes. Removed. `FAQ.md` (how to finetune release
   weights this repository cannot obtain) and `README_CN.md` (a stub inviting contributions to upstream's
@@ -97,6 +97,31 @@ caveats", which deferred the question rather than answering it.
 What the same review checked and found clean: no secrets, no local paths beyond a mount name, no face image
 or weight tracked, and `docs/commons_face_corpus.md` describes the corpus entirely by counts, naming no
 individual and no source filename.
+
+## 11. Documentation — made to describe this fork rather than upstream's
+
+A third review, on internal coherence, found that the inherited README described a different program and fixed
+it at the root instead of line by line.
+
+- `README.md` documented `-v`, `-bg_upsampler` and `-bg_tile`, none of which exist in `inference_gfpgan.py`,
+  and omitted `--model_path`, which is required, along with `--arch`, `--channel_multiplier`, `-w/--weight` and
+  `--bg_model`. Its installation section told the reader to clone upstream's repository and to
+  `pip install facexlib` and `pip install realesrgan`, both dependencies this fork removed, with an unpinned
+  `pip install basicsr` where 1.4.2 and `--no-build-isolation` are required. Its training section pointed at
+  `options/train_gfpgan_v1.yml` and `train_gfpgan_v1_simple.yml`, which do not exist. Patching those in place
+  would have produced text presented as upstream's while describing this fork, so the README now documents this
+  fork, and upstream keeps a credit section with the paper, the citation and the licence and no instructions.
+- "This branch" throughout the documentation became "this fork": the work is the repository's main line, not a
+  side branch of it.
+- `LICENSE_CLEANUP.md` cited `gfpgan-spec/specs/license-inventory.md` as its evidence base, a path that exists
+  in no published repository, and its verification table still reported 20 passing tests against the present
+  62.
+- `docs/face_restoration_alternatives.md` measured this fork's data constraint as "9,927 aligned faces", which
+  conflated the FFHQ stand-in used for evaluation with the 1,414 licensed faces that actually bound it.
+- The "Licensed corpus" entry under "Still open" said training uses FFHQ as a stand-in without mentioning that
+  the licensed corpus now exists and that run 13 was trained on it.
+- `docs/training_stability.md` numbers its runs 01 to 10 and then 13. The gap is now stated where a reader
+  meets it rather than left to look like a missing section.
 
 ## Still open
 
@@ -112,6 +137,8 @@ individual and no source filename.
   clean face, on 64 of 64, at no measurable cost on a degraded one. That is a mitigation, not a repair -- the
   model still cannot improve on a good input, only avoid spoiling it. Details in
   `docs/training_stability.md`.
-- **Licensed corpus.** Training currently uses FFHQ as a stand-in, so the weights are for evaluation only.
+- **Licensed corpus.** One exists now: 1,414 training faces from Wikimedia Commons, on which the published
+  recipe was confirmed stable (run 13). At 2% of FFHQ it cannot produce a good prior, and the measurement runs
+  use FFHQ as a stand-in, so the weights produced here remain for evaluation only.
 - **Release weights.** The official checkpoints stay out of this repository, and the build produced here is not a
   release candidate.

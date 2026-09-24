@@ -1,6 +1,6 @@
 # License cleanup
 
-Branch `main`, based on `7552a77` (TencentARC/GFPGAN). Goal: remove or replace components with commercial-use restrictions. Technical analysis, not legal advice. Evidence and sources: `gfpgan-spec/specs/license-inventory.md`.
+Branch `main`, based on `7552a77` (TencentARC/GFPGAN). Goal: remove or replace components with commercial-use restrictions. Technical analysis, not legal advice. Evidence and sources are held in a licence inventory that is not published; what it supports is set out below.
 
 ## Blocker status
 
@@ -138,7 +138,7 @@ all, and GFPGAN's own release weights state no terms, all of them resting on FFH
 | `gfpgan/archs/restoreformer_arch.py` | Modified from RestoreFormer (Apache 2.0). Release weights not verified |
 | `gfpgan/archs/arcface_arch.py` | Source not stated; not used by the clean config |
 | `gfpgan/models/gfpgan_model.py` | Still accepts `perceptual_opt` and `network_identity` from configs; the clean config uses neither |
-| `basicsr` dependency | The package ships the NVIDIA kernels; no code on this branch imports them |
+| `basicsr` dependency | The package ships the NVIDIA kernels; no code in this fork imports them |
 | `gfpgan/face_helper.py` alignment template | Derived from the facexlib 5-point template (MIT License), attributed in the file |
 | `LICENSE` | Unchanged |
 
@@ -148,7 +148,7 @@ Environment: Python 3.11.16, torch 2.1.2+cu121, torchvision 0.16.2+cu121, numpy 
 
 | Check | Result |
 |---|---|
-| `pytest` (GPU) | 20 passed |
+| `pytest` (GPU) | 62 passed across 15 files |
 | `flake8 .`, `isort --check-only`, `yapf -r -d` | Pass |
 | `codespell` | Clean since `4b47098`, which told it that `THIRDPARTY` is the isort `default_section` value in `setup.cfg` rather than a misspelling |
 | Inference, random-init `clean` weights, 4 public-domain NASA portraits (not committed) | Faces detected: 4/4 in a group portrait, 1/1 in three single portraits; aligned crops checked visually |

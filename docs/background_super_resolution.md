@@ -199,7 +199,7 @@ academic-only. DIV2K, LSDIR, ImageNet and WED all carry explicit non-commercial 
 published no terms whatsoever, which for clearance is worse than a known restriction.
 
 That rules out the entire DF2K-trained family -- SwinIR, HAT, DAT, BSRGAN, EDSR, OmniSR, SAFMN, SPAN, DRCT,
-Swin2SR -- along with the official Real-ESRGAN weights this branch already removed. SRFormer is blocked one
+Swin2SR -- along with the official Real-ESRGAN weights this fork already removed. SRFormer is blocked one
 level earlier, at the code, under CC BY-NC 4.0.
 
 Community model zoos do not solve it. Many permissively tagged entries are fine-tunes of `RealESRGAN_x4plus` or
@@ -383,7 +383,7 @@ equal budget, not what the pipeline reaches at convergence.
 
 5,724 tiles of 512 px cut from the 800 DIV2K training images, the corpus behind the official Real-ESRGAN weights.
 
-**DIV2K is licensed for academic research only**, as recorded in `gfpgan-spec/specs/license-inventory.md`. It is
+**DIV2K is licensed for academic research only**, as its own terms state. It is
 used here as a diagnostic to test whether the corpus explains the shortfall, and nothing trained on it is kept or
 shipped -- the checkpoints exist only to produce the table below. The licensed corpus remains megalith-cc0.
 Same protocol as runs 03 and 05: 3000 iterations, pixel loss only, same config, same validation set. Stable, 2901
@@ -706,7 +706,7 @@ grainier of the three. The official model still looks the sharpest of the four w
 every set -- it reads as sharp because it invents detail, which is exactly what a reference metric against the
 true photograph penalises. It remains a reference point rather than an option, on licensing grounds.
 
-This is the strongest model this branch has produced: it beats Lanczos on every metric on the near-identity set
+This is the strongest model this fork has produced: it beats Lanczos on every metric on the near-identity set
 and on the clean photograph, beats it comfortably on the degraded set, and survives inspection at native scale.
 
 Still open: whether training from scratch with mixed degradation beats patching a model that learned the bias
@@ -785,7 +785,7 @@ produced a step. Taken at face value it said the run was finished by iteration 1
 iterations were waste. The external trend says the opposite: `val_mild` SSIM kept climbing to the last checkpoint.
 The internal metric is scored only on the heavy degradation pipeline while this model trains half its samples near
 identity, so it measures the half that matters least here. Cutting the run short on it, which was considered
-twice, would have discarded the best model this branch has produced.
+twice, would have discarded the best model this fork has produced.
 
 `inference_gfpgan.py` still keeps Lanczos; adopting phase 1 as the background is a change to the product default
 and remains a decision to be taken deliberately, not a consequence of this table.

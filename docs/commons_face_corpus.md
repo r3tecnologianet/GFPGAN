@@ -22,7 +22,7 @@ public-domain archive is made of.
 **Every Flickr source is excluded, and the exclusion cannot be repaired.** Megalith-10m and FFHQ both
 draw on Flickr, so a Megalith photo can be one FFHQ was built from. The list that would remove them,
 FFHQ's `ffhq-dataset-v2.json`, is itself CC BY-NC-SA 4.0: using it even only to exclude would import the
-licence this branch exists to avoid. Megalith's high-resolution links are also Flickr's `_b` size, about
+licence this fork exists to avoid. Megalith's high-resolution links are also Flickr's `_b` size, about
 1,024 px on the long side, so a 512 px face would have to fill the frame.
 
 Commons is what remains: per-file licence and author in the API, originals rather than thumbnails, and
@@ -146,11 +146,11 @@ dozens of distinct people.
 
 Series is a proxy for identity, not a measurement of it. Three photographs from one series can still be the same
 speaker, and photographs from different series can be the same person. Measuring identity would need a face
-recognition model, and this branch has none it may use -- the same constraint that removed ArcFace. The grouping also
+recognition model, and this fork has none it may use -- the same constraint that removed ArcFace. The grouping also
 relies on titles being numbered in sequence, which is the Wikimedia event convention but not a guarantee.
 
 What this costs is worth stating plainly next to what it buys. Share-alike is a condition on derivatives,
-and whether a trained weight is a derivative of its training images has no settled answer; this branch
+and whether a trained weight is a derivative of its training images has no settled answer; this fork
 exists to avoid exactly that kind of open question, and admitting CC BY-SA accepts one deliberately in
 exchange for a corpus roughly five times larger and materially less concentrated. Every row keeps its
 `Artist`, `Credit` and licence URL, so the attribution the licence requires can be produced. The decision

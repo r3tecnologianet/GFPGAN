@@ -1,6 +1,6 @@
 # Face restoration alternatives: CodeFormer, GPEN, VQFR, CFRNet
 
-An assessment of four published face restoration methods against this branch's constraints: no
+An assessment of four published face restoration methods against this fork's constraints: no
 commercially-restricted code or weights, no `basicsr.ops.*` or StyleGAN2 CUDA kernels, no DFDNet/PSFRGAN/ParseNet
 lineage, and no licensed pretrained face weights, so anything adopted has to be trainable from scratch.
 
@@ -18,7 +18,8 @@ primary source could not be reached, this says so instead of guessing.
 
 **The licensing differences turn out not to be the deciding factor.** Three of the four need a codebook or a
 generative prior pretrained on roughly 70,000 high-quality faces, and all four were trained on FFHQ, which NVIDIA
-licenses CC BY-NC-SA 4.0. This branch has 9,927 aligned faces and a single 8 GB GPU. The binding constraint is the
+licenses CC BY-NC-SA 4.0. This fork has a single 8 GB GPU, 9,927 aligned FFHQ faces it may use only for evaluation, and a licensed
+corpus of 1,414. The binding constraint is the
 one already recorded as open in `LICENSE_CLEANUP.md`: there is no licensed face corpus and no licensed prior.
 
 ## CodeFormer (NeurIPS 2022)
@@ -37,7 +38,7 @@ The vendored tree also carries `basicsr/ops/{fused_act,upfirdn2d,dcn}` in the im
 The two architecture files are pure PyTorch and need no CUDA ops, so a clean-room reimplementation is feasible in
 principle. It is not feasible in practice at this scale: three strictly sequential stages with codebook
 pretraining as a hard prerequisite, and the authors report 1.5M/200K/20K iterations on four V100 GPUs. Stages I
-and III also use LPIPS, which pulls pretrained VGG -- the same ImageNet restriction this branch already removed in
+and III also use LPIPS, which pulls pretrained VGG -- the same ImageNet restrictiin this fork already removed in
 favour of discriminator feature matching.
 
 ## GPEN (CVPR 2021)
@@ -59,12 +60,12 @@ published weight is "not our best model due to commercial issues". Independently
 `face_model/op/*_kernel.cu` carry the NVIDIA Source Code License-NC header and `face_parse` is PSFRGAN's ParseNet
 under CC BY-NC-SA 4.0.
 
-**But the mechanism is the one finding here that fits this branch's actual constraint.** The released
+**But the mechanism is the one finding here that fits this fork's actual constraint.** The released
 `train_simple.py` trains the whole network jointly from scratch with no pretrained prior, and the authors claim
 comparable performance to the paper. Unlike the codebook methods, GPEN's idea does not presuppose a prior that
-this branch cannot obtain, and expressing it means changing how the existing `stylegan2_clean_arch.py` decoder is
+this fork cannot obtain, and expressing it means changing how the existing `stylegan2_clean_arch.py` decoder is
 conditioned -- a small, well-specified edit to code already owned here. That claim of comparable performance is
-the authors' and is unverified, and their setup assumes 70,000 faces against this branch's 9,927.
+the authors' and is unverified, and their setup assumes 70,000 faces against the 9,927 FFHQ faces evaluated with here, or the 1,414 licensed ones.
 
 ## VQFR (ECCV 2022)
 
@@ -83,7 +84,7 @@ Three qualifications:
 - The shipped discriminators are not usable. `stylegan_arch` and `swagan_arch` import vendored `upfirdn2d` whose
   `.cu` files carry the NVIDIA Source Code License-NC header, and `patch_disc_arch` pulls them transitively.
   Since `archs/__init__.py` auto-imports every `*_arch.py`, building any VQFR network imports them. They would
-  have to be replaced -- which is precisely what this branch already did once for GFPGAN's discriminators.
+  have to be replaced -- which is precisely what this fork already did once for GFPGAN's discriminators.
 - **A discrepancy worth recording.** VQFR's LICENSE and README claim Apache 2.0 over the repository and never
   disclose that NC lineage, while GFPGAN's own LICENSE does disclose its equivalents and reproduces the NVIDIA
   text. For those two files the file header should be treated as controlling, so the repository is not uniformly
@@ -123,7 +124,7 @@ alone. An idempotence loss states that requirement directly. The fix proposed th
 samples to the degradation pipeline -- is the same idea arrived at from the other direction.
 
 Note that CFRNet's full recipe also uses a pretrained VGG-19 perceptual loss and an ArcFace identity loss, both of
-which this branch has already rejected. Only the cycle and idempotence terms are adoptable.
+which this fork has already rejected. Only the cycle and idempotence terms are adoptable.
 
 ## What would actually help
 
@@ -135,7 +136,7 @@ corpus:
    same short protocol used for runs 03 to 08.
 2. **GPEN-style conditioning**, reimplemented clean-room over `stylegan2_clean_arch.py`: one global latent and
    encoder features concatenated into the noise slots, instead of W+ with channel-split SFT. Its value is that it
-   trains jointly from scratch, which is this branch's situation, and it can be compared against the existing
+   trains jointly from scratch, which is this fork's situation, and it can be compared against the existing
    configuration under the training protocol in `training_stability.md`.
 
 Neither justifies copying any file, snippet or weight from the repositories above.
