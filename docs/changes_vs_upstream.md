@@ -5,7 +5,7 @@ Per-component status and evidence are in `LICENSE_CLEANUP.md`; the training work
 
 **Goal:** remove every component that carries commercial-use restrictions, and keep the method working.
 
-**Size of the change:** 72 files changed, 4792 insertions and 3134 deletions — 27 files removed, 27 added
+**Size of the change:** 72 files changed, 4831 insertions and 3134 deletions — 27 files removed, 27 added
 and 18 modified. Most of the insertions are documentation and tests; the code is smaller than the original.
 
 ## 1. Face detection and alignment — replaced
@@ -122,6 +122,43 @@ it at the root instead of line by line.
   the licensed corpus now exists and that run 13 was trained on it.
 - `docs/training_stability.md` numbers its runs 01 to 10 and then 13. The gap is now stated where a reader
   meets it rather than left to look like a missing section.
+
+## 12. Documentation — checked against the code, the configs and the data
+
+A fourth review, on factual accuracy: every number and claim in the documentation re-derived from
+`options/train_gfpgan_clean.yml`, the source, the git history of `7552a77`, the training logs and the corpora on
+disk. Almost everything held. Four claims did not.
+
+- Two summaries overstated the `-w` sweep. `CLAUDE.md` said weight 0.75 "dominates 1 in both regimes" and
+  `README.md` said it "beat 1 on both metrics in both regimes". The sweep itself says otherwise, and says it
+  correctly: on the degraded regime 0.75 is *indistinguishable* from 1 on the mean, -0.069 dB with p=0.29, while
+  its median and SSIM are better. Both summaries now carry the measured numbers instead of the word.
+- `docs/training_stability.md` gave the Beta arm as "+0.012 dB" against the two-point draw, while the table
+  immediately above it puts Beta 0.012 dB *below*. The direction was inverted; the conclusion, a bounded tie,
+  was not affected.
+- `docs/commons_face_corpus.md` called 874 crops "labelled" where 872 carry a verdict, and gave a colour count
+  that comes from each crop's first label while the corpus is built with the unanimous rule. Both now say which
+  rule they use.
+- The licence table's three families leave out 39 files, 0.09% of the candidates, under GFDL, GODL-India, OGL,
+  "No restrictions" and bare Attribution. The text invited the reader to sum the rows to 42,971, which they do
+  not. Stated.
+
+What the same pass confirmed exactly, against the artefacts rather than against other prose: every learning
+rate, loss weight and interval cited from the training config; upstream's 2e-3 learning rate, its R1 interval of
+16, its component style weight of 200 and its `-w` default of 0.5 with the help text "Adjustable weights.", all
+read from commit `7552a77`; the eight environment versions and the GPU; the corpus at every stage of its funnel
+(876, 874, 709, 2,662, 1,757, 815, 1,524, 1,484, 1,478, and 1,414 training with 64 validation, with component
+boxes for all 1,478); the crop yields of 117.9, 79.3 and 78.7 per thousand; the licence split of 34,071, 5,058
+and 3,803; the download collapse to 0% after 24,000 images and the retry's 100% recovery; the four tie-breaking
+rules over the review sheet, which reproduce 709, 711, 710 and 712 as tabulated; and run 13's 41 validations,
+11.79 to 22.71 dB, gradient-norm median 3.92 against a maximum of 499, and 1h43 of GPU, which is 1:43:17 in the
+log.
+
+Two families of claim could not be re-derived and are therefore neither confirmed nor refuted. The cluster
+concentrations (9.4%, 30.8%, 44.0% and the per-licence figures) depend on a keyword list that the document
+describes but does not record. The series statistics (1,388 series, and 69 of them holding 1,079 crops) need a
+crop-to-title join that the merged crop directory's numbering no longer supports. Their magnitudes are
+consistent with what is on disk, which is weaker than a check.
 
 ## Still open
 

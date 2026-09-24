@@ -10,7 +10,7 @@ aligned, so the blend behaves smoothly between them: fidelity at alpha 0, textur
 training, which is why searching for the right number of adversarial iterations is the wrong experiment --
 train both ends once, then turn the dial.
 
-Measured on this branch's background models over 64 validation pairs with a near-identity degradation, alpha 0.5
+Measured on this fork's background models over 64 validation pairs with a near-identity degradation, alpha 0.5
 gained 0.26 dB of PSNR over the pixel model (bootstrap 95% CI +0.185 to +0.331) at no cost on the heavily
 degraded set, where the difference was inside noise. SSIM falls monotonically with alpha, so the blend is a
 trade rather than a free gain; see docs/background_super_resolution.md.

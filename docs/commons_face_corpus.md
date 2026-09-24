@@ -86,7 +86,8 @@ rises at every stage of the funnel:
 
 Split by licence over the same query and the same describe step, so the populations are matched. These rows
 count the licence gate alone, before the Flickr and size exclusions, which is why the admitted row here is
-8,861 rather than the 7,433 that survive all three:
+8,861 rather than the 7,433 that survive all three. The three families leave out 39 files, 0.09%, licensed
+GFDL, GODL-India, OGL, "No restrictions" or bare Attribution, so the rows do not sum to 42,971:
 
 | Licence | Files | In those clusters |
 |---|---|---|
@@ -164,7 +165,7 @@ the photographer. Neither this repository nor the sibling project documents a po
 person, and for weights meant to be distributed that is the gate that matters, not the crop count.
 
 **The usable fraction is 81%, and it is not the bottleneck.** The 876 crops were reviewed by hand, and
-709 of the 874 labelled crops are usable, against PD12M's 44%. Applying that rate to the 327 new crops
+709 of the 874 reviewed crops are usable, against PD12M's 44% (872 carry a verdict; two were left blank). Applying that rate to the 327 new crops
 leaves about 265 usable faces that were not already held.
 
 The count needs its tie-breaking rule stated, because thirty crops were repeated inside the sheet to
@@ -174,7 +175,7 @@ The unanimous rule is used here and for the corpus built from it, because for tr
 conservative reading is the right one, and the spread of three crops in 874 is the reviewer's own
 consistency rather than an error.
 
-Colour is no longer a confound either -- 619 of the labelled crops are colour against 10 monochrome -- so
+Colour is no longer a confound either -- taking each crop's first label, 619 are colour against 10 monochrome -- so
 the classifier that failed on PD12M by being a colour detector would have had almost nothing to detect.
 
 ### The corpus that came out of it

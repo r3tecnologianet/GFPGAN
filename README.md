@@ -79,8 +79,9 @@ Two of those deserve a paragraph.
 back toward the aligned input in `gfpgan/utils.py:blend_restoration`: 1 is the restoration, 0 the aligned 512
 crop untouched. Under `--aligned` that crop is the input image; on the whole-image path the face is still
 warped to 512 and pasted back through the feathered mask, so `-w 0` is not a no-op on the photograph. The
-default comes from a sweep in [docs/training_stability.md](docs/training_stability.md) where 0.75 beat 1 on
-both metrics in both regimes, because the model damages a face that is already good.
+default comes from a sweep in [docs/training_stability.md](docs/training_stability.md): against 1, weight 0.75
+gains 2.04 dB on a clean input on 64 of 64 faces and costs nothing measurable on a degraded one (-0.069 dB,
+p=0.29, with a better median and a better SSIM), because the model damages a face that is already good.
 
 **`--bg_model` replaces Lanczos on the background.** The architecture and scale are read from the checkpoint
 itself (`gfpgan/bg_upsampler.py`) and nothing is downloaded. The model this slot was built for, and the

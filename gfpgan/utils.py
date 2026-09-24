@@ -24,7 +24,7 @@ def blend_restoration(restored, original, weight):
     near-identity samples (`mild_prob`) recovers about 15% of that and the returns diminish sharply, so the rest
     has to be bought somewhere else. This is that dial, applied at inference and costing no training: at 0 the
     output is the input untouched, at 1 it is the restoration, and in between the trade is continuous. It is
-    network interpolation (arXiv:1811.10515) taken to the image, the technique this branch already uses to blend
+    network interpolation (arXiv:1811.10515) taken to the image, the technique this fork already uses to blend
     the background upsampler's two checkpoints. Evidence for both is in `docs/training_stability.md`.
 
     The trade is real in both directions: lowering the weight protects a good input and weakens the restoration
