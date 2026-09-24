@@ -5,8 +5,8 @@ Per-component status and evidence are in `LICENSE_CLEANUP.md`; the training work
 
 **Goal:** remove every component that carries commercial-use restrictions, and keep the method working.
 
-**Size of the change:** 48 files changed, 1660 insertions and 2752 deletions — 23 files removed, 11 added,
-13 modified and 1 renamed. The project is smaller than the original.
+**Size of the change:** 72 files changed, 4639 insertions and 2984 deletions — 27 files removed, 27 added
+and 18 modified. Most of the insertions are documentation and tests; the code is smaller than the original.
 
 ## 1. Face detection and alignment — replaced
 
@@ -70,6 +70,33 @@ including the comparison against the official GFPGAN v1.4) and `CLAUDE.md`. Late
 `docs/background_super_resolution.md` (the background model, what was measured and what was refuted),
 `docs/face_restoration_alternatives.md` (CodeFormer, GPEN, VQFR and CFRNet assessed against this branch) and this
 file.
+
+## 10. Upstream documentation — audited for what a public fork may republish
+
+A second review of the documentation, on publication safety alone, found six defects and closed all of them.
+Four were already known: `LICENSE_CLEANUP.md` had listed upstream's branding and docs under "kept with
+caveats", which deferred the question rather than answering it.
+
+- `experiments/pretrained_models/README.md` was a bare download sheet for the FFHQ StyleGAN2 prior, the
+  DFDNet-derived FFHQ landmarks and ArcFace — the three artefacts sections 2, 4 and 5 above removed the code
+  for. It now states that nothing is downloaded, and why each is excluded.
+- `Comparisons.md` displayed 28 photographs of named public figures, hotlinked from upstream, beside
+  manipulated versions of their faces. Section 8 removed `inputs/` for the same reason; this kept the display
+  after deleting the files. Replaced by a pointer to what is measured here on held-out faces.
+- Upstream maintainers' personal e-mail addresses were this fork's published contact in `README.md`, the
+  address for conduct reports in `CODE_OF_CONDUCT.md`, and the `author_email` in `setup.py`. All three now
+  point at this repository.
+- Upstream's README is still kept below the notice, with the download links for the release weights, for
+  upstream's extra-model folders and for FFHQ stripped out. The notice discloses that edit, since keeping the
+  prose while calling it unmodified would be the dishonest option.
+- `assets/gfpgan_logo.png` was upstream's mark serving as this fork's header, and `release.yml` hotlinked it
+  from upstream's content host into this fork's release notes. Removed. `FAQ.md` (how to finetune release
+  weights this repository cannot obtain) and `README_CN.md` (a stub inviting contributions to upstream's
+  unfinished translation) went with it.
+
+What the same review checked and found clean: no secrets, no local paths beyond a mount name, no face image
+or weight tracked, and `docs/commons_face_corpus.md` describes the corpus entirely by counts, naming no
+individual and no source filename.
 
 ## Still open
 

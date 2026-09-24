@@ -97,6 +97,9 @@ all, and GFPGAN's own release weights state no terms, all of them resting on FFH
 | `tests/data/gt/`, `tests/data/ffhq_gt.lmdb/`, `tests/data/test_eye_mouth_landmarks.pth` | Image and landmarks following FFHQ naming |
 | `tests/test_utils.py`, old `tests/test_gfpgan_model.py`, `tests/data/test_gfpgan_model.yml` | Depend on removed architectures and restricted weights |
 | `facexlib` dependency | Replaced by `mediapipe` |
+| `FAQ.md` | Its single answer explains how to finetune the v1.2 release weights, which this repository cannot obtain |
+| `README_CN.md` | A seven-line stub inviting contributions to an unfinished upstream translation |
+| `assets/gfpgan_logo.png` | Upstream branding, used as this fork's own header in both READMEs and hotlinked into release notes |
 
 ## Added
 
@@ -120,7 +123,12 @@ all, and GFPGAN's own release weights state no terms, all of them resting on FFH
 | `requirements.txt`, `setup.cfg` | `facexlib` replaced by `mediapipe` |
 | `tests/test_gfpgan_arch.py`, `tests/test_ffhq_degradation_dataset.py`, `tests/data/test_ffhq_degradation_dataset.yml` | Clean architecture only; synthetic images and component boxes |
 | `MANIFEST.in`, `.github/workflows/pylint.yml`, `.gitignore` | Removed `inputs/`; downloaded MediaPipe models ignored |
-| `README.md` | Notice at the top pointing to this file |
+| `README.md` | Notice at the top pointing to this file. Upstream's text below it is kept with the download links for the release weights, for upstream's extra-model folders and for FFHQ stripped out, which the notice discloses; the contact section no longer gives upstream maintainers' personal e-mail addresses |
+| `Comparisons.md` | The version comparison over 28 hotlinked photographs of named public figures is gone, replaced by a pointer to what this fork measures on held-out faces. Same reason as `inputs/`, plus the models compared are release weights this repository cannot ship |
+| `experiments/pretrained_models/README.md` | Was a download sheet for the FFHQ StyleGAN2 prior, the DFDNet-derived FFHQ landmarks and ArcFace. Now states that nothing is downloaded, and why each of the three is excluded |
+| `CODE_OF_CONDUCT.md` | Conduct reports went to upstream maintainers' personal addresses; they now go to this repository's issue tracker |
+| `setup.py` | `author`, `author_email` and `url` named a third party and pointed at upstream; the description now says this is the licence-cleanup fork |
+| `.github/workflows/release.yml` | Release notes no longer hotlink upstream's logo from upstream's raw content host |
 
 ## Kept with caveats
 
@@ -132,7 +140,6 @@ all, and GFPGAN's own release weights state no terms, all of them resting on FFH
 | `gfpgan/models/gfpgan_model.py` | Still accepts `perceptual_opt` and `network_identity` from configs; the clean config uses neither |
 | `basicsr` dependency | The package ships the NVIDIA kernels; no code on this branch imports them |
 | `gfpgan/face_helper.py` alignment template | Derived from the facexlib 5-point template (MIT License), attributed in the file |
-| `assets/gfpgan_logo.png`, `README*.md`, `Comparisons.md`, `FAQ.md` | Upstream branding and documentation, with links to restricted weights and facexlib |
 | `LICENSE` | Unchanged |
 
 ## Verification
@@ -143,7 +150,7 @@ Environment: Python 3.11.16, torch 2.1.2+cu121, torchvision 0.16.2+cu121, numpy 
 |---|---|
 | `pytest` (GPU) | 20 passed |
 | `flake8 .`, `isort --check-only`, `yapf -r -d` | Pass |
-| `codespell` | 1 finding: the isort `default_section` value in `setup.cfg` (unchanged since `7552a77`) |
+| `codespell` | Clean since `4b47098`, which told it that `THIRDPARTY` is the isort `default_section` value in `setup.cfg` rather than a misspelling |
 | Inference, random-init `clean` weights, 4 public-domain NASA portraits (not committed) | Faces detected: 4/4 in a group portrait, 1/1 in three single portraits; aligned crops checked visually |
 | Component boxes on the 7 aligned faces above | 7/7 generated; boxes checked visually |
 | Global discriminator at 512x512, batch 1, forward + backward + R1 | 528 ms/iter, 1.3 GiB peak |

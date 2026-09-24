@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="assets/gfpgan_logo.png" height=130>
-</p>
-
 > ## This is a licence-cleanup fork, not upstream GFPGAN
 >
 > A fork of [TencentARC/GFPGAN](https://github.com/TencentARC/GFPGAN) with every component carrying a
@@ -26,9 +22,10 @@
 > anyone who holds face data they are entitled to train on.
 >
 > Everything below this notice is upstream's README, including the badges, demo links and download counts,
-> which report the upstream repository rather than this fork.
-
-## <div align="center"><b><a href="README.md">English</a> | <a href="README_CN.md">简体中文</a></b></div>
+> which report the upstream repository rather than this fork. It is kept with one edit, disclosed here: the
+> download links for the official release weights, for upstream's extra-model folders and for FFHQ have been
+> stripped from it. The prose stays as a record of what upstream distributes; the links do not, because this
+> fork must not hand out weights and datasets it cannot license.
 
 <div align="center">
 <!-- <a href="https://twitter.com/_Xintao_" style="text-decoration:none;">
@@ -57,13 +54,11 @@
 GFPGAN aims at developing a **Practical Algorithm for Real-world Face Restoration**.<br>
 It leverages rich and diverse priors encapsulated in a pretrained face GAN (*e.g.*, StyleGAN2) for blind face restoration.
 
-:question: Frequently Asked Questions can be found in [FAQ.md](FAQ.md).
-
 :triangular_flag_on_post: **Updates**
 
 - :white_check_mark: Add [RestoreFormer](https://github.com/wzhouxiff/RestoreFormer) inference codes.
-- :white_check_mark: Add [V1.4 model](https://github.com/TencentARC/GFPGAN/releases/download/v1.3.0/GFPGANv1.4.pth), which produces slightly more details and better identity than V1.3.
-- :white_check_mark: Add **[V1.3 model](https://github.com/TencentARC/GFPGAN/releases/download/v1.3.0/GFPGANv1.3.pth)**, which produces **more natural** restoration results, and better results on *very low-quality* / *high-quality* inputs. See more in [Model zoo](#european_castle-model-zoo), [Comparisons.md](Comparisons.md)
+- :white_check_mark: Add V1.4 model, which produces slightly more details and better identity than V1.3.
+- :white_check_mark: Add **V1.3 model**, which produces **more natural** restoration results, and better results on *very low-quality* / *high-quality* inputs. See more in [Model zoo](#european_castle-model-zoo), [Comparisons.md](Comparisons.md)
 - :white_check_mark: Integrated to [Huggingface Spaces](https://huggingface.co/spaces) with [Gradio](https://github.com/gradio-app/gradio). See [Gradio Web Demo](https://huggingface.co/spaces/akhaliq/GFPGAN).
 - :white_check_mark: Support enhancing non-face regions (background) with [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN).
 - :white_check_mark: We provide a *clean* version of GFPGAN, which does not require CUDA extensions.
@@ -102,7 +97,8 @@ Other recommended projects:<br>
 ### Installation
 
 We now provide a *clean* version of GFPGAN, which does not require customized CUDA extensions. <br>
-If you want to use the original model in our paper, please see [PaperModel.md](PaperModel.md) for installation.
+The original paper model needs the NVIDIA CUDA extensions this fork removed, so its installation
+instructions are not here.
 
 1. Clone repo
 
@@ -134,10 +130,10 @@ If you want to use the original model in our paper, please see [PaperModel.md](P
 
 We take the v1.3 version for an example. More models can be found [here](#european_castle-model-zoo).
 
-Download pre-trained models: [GFPGANv1.3.pth](https://github.com/TencentARC/GFPGAN/releases/download/v1.3.0/GFPGANv1.3.pth)
+Download pre-trained models: GFPGANv1.3.pth
 
 ```bash
-wget https://github.com/TencentARC/GFPGAN/releases/download/v1.3.0/GFPGANv1.3.pth -P experiments/pretrained_models
+# Download link removed in this fork. Put weights you are licensed to use in experiments/pretrained_models
 ```
 
 **Inference!**
@@ -162,15 +158,15 @@ Usage: python inference_gfpgan.py -i inputs/whole_imgs -o results -v 1.3 -s 2 [o
   -ext                 Image extension. Options: auto | jpg | png, auto means using the same extension as inputs. Default: auto
 ```
 
-If you want to use the original model in our paper, please see [PaperModel.md](PaperModel.md) for installation and inference.
+The original paper model needs the NVIDIA CUDA extensions this fork removed, so its instructions are not here.
 
 ## :european_castle: Model Zoo
 
 | Version | Model Name  | Description |
 | :---: | :---:        |     :---:      |
-| V1.3 | [GFPGANv1.3.pth](https://github.com/TencentARC/GFPGAN/releases/download/v1.3.0/GFPGANv1.3.pth) | Based on V1.2; **more natural** restoration results; better results on very low-quality / high-quality inputs. |
-| V1.2 | [GFPGANCleanv1-NoCE-C2.pth](https://github.com/TencentARC/GFPGAN/releases/download/v0.2.0/GFPGANCleanv1-NoCE-C2.pth) | No colorization; no CUDA extensions are required. Trained with more data with pre-processing. |
-| V1 | [GFPGANv1.pth](https://github.com/TencentARC/GFPGAN/releases/download/v0.1.0/GFPGANv1.pth) | The paper model, with colorization. |
+| V1.3 | GFPGANv1.3.pth | Based on V1.2; **more natural** restoration results; better results on very low-quality / high-quality inputs. |
+| V1.2 | GFPGANCleanv1-NoCE-C2.pth | No colorization; no CUDA extensions are required. Trained with more data with pre-processing. |
+| V1 | GFPGANv1.pth | The paper model, with colorization. |
 
 The comparisons are in [Comparisons.md](Comparisons.md).
 
@@ -181,7 +177,7 @@ Note that V1.3 is not always better than V1.2. You may need to select different 
 |V1.3 |  ✓ natural outputs<br> ✓better results on very low-quality inputs <br> ✓ work on relatively high-quality inputs <br>✓ can have repeated (twice) restorations | ✗ not very sharp <br> ✗ have a slight change on identity |
 |V1.2 |  ✓ sharper output <br> ✓ with beauty makeup | ✗ some outputs are unnatural |
 
-You can find **more models (such as the discriminators)** here: [[Google Drive](https://drive.google.com/drive/folders/17rLiFzcUMoQuhLnptDsKolegHWwJOnHu?usp=sharing)], OR [[Tencent Cloud 腾讯微云](https://share.weiyun.com/ShYoCCoc)]
+Upstream distributes **more models (such as the discriminators)** from its own cloud folders. Those links were removed here.
 
 ## :computer: Training
 
@@ -197,12 +193,12 @@ You could improve it according to your own needs.
 
 (You can try a simple version ( `options/train_gfpgan_v1_simple.yml`) that does not require face component landmarks.)
 
-1. Dataset preparation: [FFHQ](https://github.com/NVlabs/ffhq-dataset)
+1. Dataset preparation: FFHQ, whose link was removed here — it is the non-commercial dataset this fork exists to
+   avoid depending on
 
 1. Download pre-trained models and other data. Put them in the `experiments/pretrained_models` folder.
-    1. [Pre-trained StyleGAN2 model: StyleGAN2_512_Cmul1_FFHQ_B12G4_scratch_800k.pth](https://github.com/TencentARC/GFPGAN/releases/download/v0.1.0/StyleGAN2_512_Cmul1_FFHQ_B12G4_scratch_800k.pth)
-    1. [Component locations of FFHQ: FFHQ_eye_mouth_landmarks_512.pth](https://github.com/TencentARC/GFPGAN/releases/download/v0.1.0/FFHQ_eye_mouth_landmarks_512.pth)
-    1. [A simple ArcFace model: arcface_resnet18.pth](https://github.com/TencentARC/GFPGAN/releases/download/v0.1.0/arcface_resnet18.pth)
+    1. Pre-trained StyleGAN2 model, component locations of FFHQ and an ArcFace model. Links removed here, with the
+       reason for each in `experiments/pretrained_models/README.md`
 
 1. Modify the configuration file `options/train_gfpgan_v1.yml` accordingly.
 
@@ -225,4 +221,7 @@ GFPGAN is released under Apache License Version 2.0.
 
 ## :e-mail: Contact
 
-If you have any question, please email `xintao.wang@outlook.com` or `xintaowang@tencent.com`.
+Questions about **this fork** belong in its own issue tracker: <https://github.com/r3tecnologianet/GFPGAN/issues>.
+Questions about upstream GFPGAN belong in [TencentARC/GFPGAN](https://github.com/TencentARC/GFPGAN). Upstream
+maintainers' personal e-mail addresses stood in this section and were removed: this repository is not theirs to
+answer for.

@@ -1,4 +1,3 @@
-include assets/*
 include scripts/*.py
 include inference_gfpgan.py
 include VERSION
