@@ -96,6 +96,21 @@ GFDL, GODL-India, OGL, "No restrictions" or bare Attribution, so the rows do not
 | CC BY | 3,803 | 19.5% |
 | **Admitted by licence alone (CC0/PD + CC BY)** | 8,861 | **25.9%** |
 
+**How to reproduce the two tables above.** The keyword list that defines "those clusters" was not recorded when
+the figures were produced. Rebuilt from the five clusters named above it reproduces all seven of them to within
+0.9 points: match a candidate title, case-insensitively, against `wikick`, `wikiconvfr`, `wikican`, `wikimousso`,
+`éditathon`, `editathon`, `edit-a-thon`, `matinée contributive`, `renforcement de capacité`, `journée d'étude`,
+`ran24`, `ran25`, `ran2024`, `ran2025`, `usergroup`, `user group`, `wikimedians`, `club wikimedia`, `giehpci`,
+`wikiciv`, `cote d'ivoire`, `côte d'ivoire`, `abidjan`, `femua`, `daloa`, `san-pedro`, `nigeria`, `in iran`,
+`meraji`, `wikimedia`, `wikipédia`. That gives 9.2%, 31.4% and 44.1% down the funnel against the 9.4%, 30.8% and
+44.0% published, and 4.7%, 31.6%, 19.3% and 26.3% across the licence rows against 5.2%, 30.7%, 19.5% and 25.9%.
+The exact figures depend on the list; the shape does not, and no variant tried moved the funnel below 8.5% to
+28.7% to 42.8%.
+
+The two tables also check each other, which needs no reconstruction. The admitted row is the sum of its parts:
+30.7% of 5,058 plus 19.5% of 3,803 is 2,294 titles, against 2,295 from 25.9% of 8,861. And the three licence
+rows recover the funnel's first row: 5.2% of 34,071 plus those 2,294 is 9.46% of 42,971, published as 9.4%.
+
 The breadth is in the share-alike population that this project excludes. CC BY-SA is the default licence
 for most Commons uploads, so what survives a CC0/PD/CC BY filter is disproportionately organised outreach
 photography from particular communities, and the face-crop step concentrates it further because event
@@ -128,12 +143,13 @@ difference hash over all 2,662 crops finds 3 identical pairs and 10 near-duplica
 and multiple faces cropped from one photograph account for only 226 crops, since 2,662 crops come from 2,436 distinct
 images. Measuring that first answered the wrong question.
 
-The duplication is by event series. Grouping source titles by their series name -- the file title with any trailing
-sequence number removed -- gives 1,388 series, and the 69 series holding five or more photographs account for 1,079
-crops, 40.5% of the total. The largest are conference and outreach sets: 93 photographs and 126 crops from one
-Iberoconf 2023 session, 44 and 69 from a single lecture, 51 and 59 from one editathon opening. These are the same
-speakers and attendees photographed dozens of times, which inflates the count without adding identities and biases a
-prior toward those faces.
+The duplication is by event series. Grouping source titles by their series name -- the file title with its
+extension and any trailing sequence number removed, where the number may carry punctuation on either side, as
+`Title (4).jpg` and `Title - 04.jpg` do -- gives 1,388 series, and the 69 series holding five or more
+photographs account for 1,079 crops, 40.5% of the total. The largest are conference and outreach sets: 93
+photographs and 126 crops from one Iberoconf 2023 session, 44 and 69 from a single lecture, 51 and 59 from one
+editathon opening. These are the same speakers and attendees photographed dozens of times, which inflates the
+count without adding identities and biases a prior toward those faces.
 
 The clusters also moved with the licence. The CC0 and CC BY pool concentrated in francophone African outreach events;
 the CC BY-SA pool concentrates in Ibero-American ones. Different communities, the same structure: Wikimedia event
@@ -165,8 +181,8 @@ the photographer. Neither this repository nor the sibling project documents a po
 person, and for weights meant to be distributed that is the gate that matters, not the crop count.
 
 **The usable fraction is 81%, and it is not the bottleneck.** The 876 crops were reviewed by hand, and
-709 of the 874 reviewed crops are usable, against PD12M's 44% (872 carry a verdict; two were left blank). Applying that rate to the 327 new crops
-leaves about 265 usable faces that were not already held.
+709 of the 874 reviewed crops are usable, against PD12M's 44% (872 carry a verdict; two were left
+blank). Applying that rate to the 327 new crops leaves about 265 usable faces that were not already held.
 
 The count needs its tie-breaking rule stated, because thirty crops were repeated inside the sheet to
 measure the reviewer and three of them carry labels that disagree. Counting a crop usable only when every

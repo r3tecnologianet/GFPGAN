@@ -18,8 +18,8 @@ primary source could not be reached, this says so instead of guessing.
 
 **The licensing differences turn out not to be the deciding factor.** Three of the four need a codebook or a
 generative prior pretrained on roughly 70,000 high-quality faces, and all four were trained on FFHQ, which NVIDIA
-licenses CC BY-NC-SA 4.0. This fork has a single 8 GB GPU, 9,927 aligned FFHQ faces it may use only for evaluation, and a licensed
-corpus of 1,414. The binding constraint is the
+licenses CC BY-NC-SA 4.0. This fork has a single 8 GB GPU, 9,927 aligned FFHQ faces it may use only for
+evaluation, and a licensed corpus of 1,414. The binding constraint is the
 one already recorded as open in `LICENSE_CLEANUP.md`: there is no licensed face corpus and no licensed prior.
 
 ## CodeFormer (NeurIPS 2022)
@@ -65,7 +65,8 @@ under CC BY-NC-SA 4.0.
 comparable performance to the paper. Unlike the codebook methods, GPEN's idea does not presuppose a prior that
 this fork cannot obtain, and expressing it means changing how the existing `stylegan2_clean_arch.py` decoder is
 conditioned -- a small, well-specified edit to code already owned here. That claim of comparable performance is
-the authors' and is unverified, and their setup assumes 70,000 faces against the 9,927 FFHQ faces evaluated with here, or the 1,414 licensed ones.
+the authors' and is unverified, and their setup assumes 70,000 faces against the 9,927 FFHQ faces evaluated
+with here, or the 1,414 licensed ones.
 
 ## VQFR (ECCV 2022)
 

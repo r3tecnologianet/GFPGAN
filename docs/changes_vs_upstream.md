@@ -5,7 +5,7 @@ Per-component status and evidence are in `LICENSE_CLEANUP.md`; the training work
 
 **Goal:** remove every component that carries commercial-use restrictions, and keep the method working.
 
-**Size of the change:** 72 files changed, 4831 insertions and 3134 deletions — 27 files removed, 27 added
+**Size of the change:** 72 files changed, 4857 insertions and 3134 deletions — 27 files removed, 27 added
 and 18 modified. Most of the insertions are documentation and tests; the code is smaller than the original.
 
 ## 1. Face detection and alignment — replaced
@@ -154,11 +154,19 @@ rules over the review sheet, which reproduce 709, 711, 710 and 712 as tabulated;
 11.79 to 22.71 dB, gradient-norm median 3.92 against a maximum of 499, and 1h43 of GPU, which is 1:43:17 in the
 log.
 
-Two families of claim could not be re-derived and are therefore neither confirmed nor refuted. The cluster
-concentrations (9.4%, 30.8%, 44.0% and the per-licence figures) depend on a keyword list that the document
-describes but does not record. The series statistics (1,388 series, and 69 of them holding 1,079 crops) need a
-crop-to-title join that the merged crop directory's numbering no longer supports. Their magnitudes are
-consistent with what is on disk, which is weaker than a check.
+Two families of claim resisted a first attempt and were then re-derived as well, after the crop-to-title join
+turned out to be recoverable: crop filenames index their fetch record, and the merged directory keeps one prefix
+per fetch.
+
+- The series statistics reproduce **exactly** -- 1,388 series, 69 of them holding 1,079 crops, 40.5% -- once the
+  trailing sequence number is stripped with punctuation allowed on either side, which is the rule the document
+  describes. All three worked examples match to the crop: 93 photographs and 126 crops from the Iberoconf
+  session, 44 and 69 from the lecture, 51 and 59 from the editathon opening.
+- The cluster concentrations reproduce to within 0.9 points on all seven figures, from a keyword list rebuilt out
+  of the five clusters the document names. The list itself was never recorded, so the exact figures cannot be
+  recovered, only bracketed; the funnel's shape held under every variant tried. Both the list and this tolerance
+  are now written into `docs/commons_face_corpus.md`, along with the arithmetic by which the document's two
+  concentration tables confirm each other without any reconstruction at all.
 
 ## Still open
 
