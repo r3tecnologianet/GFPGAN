@@ -2,13 +2,31 @@
   <img src="assets/gfpgan_logo.png" height=130>
 </p>
 
-> **License cleanup branch — what this is.** The code and the training pipeline are free of components with non-commercial restrictions: the NVIDIA StyleGAN2 CUDA ops, DFDNet-derived code, ParseNet, the VGG19 perceptual loss and the Real-ESRGAN background upsampler are gone or replaced.
+> ## This is a licence-cleanup fork, not upstream GFPGAN
 >
-> **The face weights are yours to supply, and that is permanent.** `inference_gfpgan.py` requires `--model_path` and downloads nothing. Every public face restorer, this one included, rests on FFHQ, which is non-commercial — and a survey of the alternatives found no face corpus that is both licensed for commercial use and collected with the subjects' consent, so this is not a gap waiting to be filled. A copyright licence on a photograph does not carry the depicted person's consent, and biometric regimes attach independently of who owns the image. See [LICENSE_CLEANUP.md](LICENSE_CLEANUP.md).
+> A fork of [TencentARC/GFPGAN](https://github.com/TencentARC/GFPGAN) with every component carrying a
+> non-commercial restriction removed or replaced: the NVIDIA StyleGAN2 CUDA ops, DFDNet-derived code,
+> ParseNet, the VGG19 perceptual loss and the Real-ESRGAN background upsampler. What each blocker was and
+> how it was closed is in [LICENSE_CLEANUP.md](LICENSE_CLEANUP.md).
 >
-> **The background weights are the exception.** `--bg_model` takes a super-resolution model trained here on CC0 photographs of scenery, which carry no biometric data, so unlike the face model it can be distributed. Evidence in [docs/background_super_resolution.md](docs/background_super_resolution.md).
+> **What you can use today.** The code and the training pipeline. The background super-resolution weights
+> that `--bg_model` takes, trained here on CC0 photographs of scenery, which carry no biometric data and are
+> therefore distributable ([evidence](docs/background_super_resolution.md)). And the training recipe, whose
+> settings were measured rather than chosen ([stability](docs/training_stability.md)).
 >
-> The rest of this README still describes upstream GFPGAN.
+> **The face weights are yours to supply, and that is permanent.** `inference_gfpgan.py` requires
+> `--model_path` and downloads nothing. Every public face restorer rests on FFHQ, which is non-commercial,
+> so no released checkpoint can be shipped from here. Collecting a replacement was tried and measured to its
+> end: the largest licensed pool on Wikimedia Commons yields 1,414 training faces, 2% of FFHQ
+> ([measurement](docs/commons_face_corpus.md)). Scale is not even the binding constraint. A copyright licence
+> clears the photographer, not the consent of the person photographed, and that gate closes independently of
+> how many images are collected.
+>
+> **So the honest scope is the code, the pipeline and the background weights** — with a documented recipe for
+> anyone who holds face data they are entitled to train on.
+>
+> Everything below this notice is upstream's README, including the badges, demo links and download counts,
+> which report the upstream repository rather than this fork.
 
 ## <div align="center"><b><a href="README.md">English</a> | <a href="README_CN.md">简体中文</a></b></div>
 
