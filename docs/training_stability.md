@@ -16,7 +16,7 @@ The check is applied to the training log by an analysis script (kept outside the
 
 | Item | Value |
 |---|---|
-| Source | 716 hand-reviewed face crops from PD12M, collected by the OpenGFPGAN project (`datatest/faces-716-crops`) |
+| Source | 716 hand-reviewed face crops from PD12M, collected by the sibling OpenGFPGAN project, whose repository is not published |
 | Licences (per-image records) | 351 CC0 1.0, 298 Public Domain Mark 1.0 (of the 649 images used) |
 | Sources | Wikimedia Commons 594, museums and archives 55 |
 | Crop resolution | shorter side 600–5394 px, median 1103 px |

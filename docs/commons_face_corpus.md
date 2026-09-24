@@ -5,8 +5,8 @@ restorer rests on FFHQ and FFHQ is non-commercial (`LICENSE_CLEANUP.md`). The re
 is to collect a corpus that is licensed for commercial use. This measures the best remaining source to
 its end, so the size of that repair is a number rather than a hope.
 
-Measured 2026-09-21. The collection tooling belongs to the sibling OpenGFPGAN project
-(`docs/spikes/commons_order.py` and `docs/spikes/face_quality.py`); nothing here was modified. Data lives
+Measured 2026-09-21. The collection tooling belongs to the sibling OpenGFPGAN project, whose repository is not
+published, so its paths are not cited here; nothing in it was modified for this measurement. Data lives
 outside the repository, under `/mnt/dados/gfpgan-clean/commons-order`.
 
 ## Why Commons, and not the alternatives
@@ -63,11 +63,26 @@ FFHQ holds 70,000 curated faces. The gap is not one more crawl: it is two orders
 pool is exhausted rather than sampled -- exhausted under the licence filter of the day, which is what the
 decision below goes on to change.
 
-Training a StyleGAN2 prior at this scale is the decision that follows, not "collect more". For reference,
-the measured throughput on the RTX 3060 Ti is 28.2 img/s at 512² with batch 4 -- and only batch 4 fits in
-8 GB, against the paper's minibatch of 32, which needs gradient accumulation that `ogan/training.py` does
-not implement. Adaptive augmentation, which the sibling project has implemented, is the technique that
-exists for corpora this small.
+Training a StyleGAN2 prior at this scale is the decision that follows, not "collect more". Measured rather than
+estimated, on this repository's own clean generator and discriminator driven by basicsr's `StyleGAN2Model`: a full
+training step at 512x512 -- generator, discriminator, lazy R1, path length regularisation and style mixing --
+runs at 3.4 images per second at batch 2 on the RTX 3060 Ti, peaking at 4.24 GiB, and batch 4 does not fit in
+8 GB. That is 17 days to the 5,000 kimg the StyleGAN2-ADA repository calls "already quite reasonable" and 86 days
+to the 25,000 kimg it calls convergence, against 4.4 and 21.9 days for a single V100 in NVIDIA's own table. The
+paper's minibatch of 32 would need gradient accumulation, which repairs the gradient statistics and not the wall
+clock.
+
+An earlier version of this section put the throughput at 28.2 images per second, which cannot describe a training
+step for a network this size on this GPU: leaner configurations measure 7.3 images per second without the
+regularisers, 9.3 without the discriminator at all, and 20.2 for the generator's forward pass alone with no
+gradients. Whatever the higher figure measured, converting it into a schedule gives ten days where a full step
+gives eighty-six.
+
+Adaptive augmentation, which the sibling project has implemented, is the technique that exists for corpora this
+small: on 1,000 FFHQ faces at 256x256 trained from scratch it is the difference between FID 100.16 and 21.29
+(arXiv:2006.06676), against 3.71 for the full 140,000. The one published result at this corpus size -- MetFaces,
+1,336 images -- was obtained by transfer from an FFHQ-pretrained model, which is the route the licence filter
+closes.
 
 ## The licence filter manufactures a demographic skew
 

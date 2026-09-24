@@ -5,7 +5,7 @@ Per-component status and evidence are in `LICENSE_CLEANUP.md`; the training work
 
 **Goal:** remove every component that carries commercial-use restrictions, and keep the method working.
 
-**Size of the change:** 72 files changed, 4857 insertions and 3134 deletions — 27 files removed, 27 added
+**Size of the change:** 72 files changed, 4880 insertions and 3134 deletions — 27 files removed, 27 added
 and 18 modified. Most of the insertions are documentation and tests; the code is smaller than the original.
 
 ## 1. Face detection and alignment — replaced
@@ -153,6 +153,14 @@ and 3,803; the download collapse to 0% after 24,000 images and the retry's 100% 
 rules over the review sheet, which reproduce 709, 711, 710 and 712 as tabulated; and run 13's 41 validations,
 11.79 to 22.71 dB, gradient-norm median 3.92 against a maximum of 499, and 1h43 of GPU, which is 1:43:17 in the
 log.
+
+That pass had one blind spot, found afterwards by asking whether any of it had leaned on the sibling project.
+Every number was re-derived from artefacts in this repository, so a claim whose evidence lives outside it was
+classified as a legitimate external reference and never checked. One such claim was wrong: the throughput behind
+the "training a StyleGAN2 prior" paragraph of `docs/commons_face_corpus.md`, 28.2 images per second at 512x512,
+is above what this repository's own generator reaches with no gradients at all, and eight times a full training
+step. It offered a reader a ten-day schedule where the measurement gives eighty-six days. Corrected there, along
+with three paths into the sibling project's unpublished tree, which a public reader cannot follow.
 
 Two families of claim resisted a first attempt and were then re-derived as well, after the crop-to-title join
 turned out to be recoverable: crop filenames index their fetch record, and the merged directory keeps one prefix
