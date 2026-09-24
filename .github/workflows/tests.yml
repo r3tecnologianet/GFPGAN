@@ -30,6 +30,7 @@ jobs:
         # basicsr's setup.py imports torch, so it cannot be built in isolation from it
         pip install --no-build-isolation basicsr==1.4.2
         pip install "mediapipe==0.10.14" -r requirements.txt
+        # the same command CLAUDE.md documents, so CI fails if the documented install path breaks
         python setup.py develop
 
     - name: Test with coverage
