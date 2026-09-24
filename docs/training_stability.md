@@ -527,3 +527,27 @@ that surrounds the blend is not part of what was measured. The best weight also 
 `basicsr` draws the blur kernel type with `random.choices`, from the standard library generator rather than numpy or torch. A test that seeds only `np.random` and `torch` leaves that draw to whatever ambient global state the process is in, so two identically configured datasets pick different kernels and disagree. This made the equivalence test pass inside the full suite and fail when run on its own, producing two stable values that swapped places with construction order. Two plausible diagnoses came first and neither survived measurement: a shared `io_backend` dictionary, and a first-call effect from building the `FileClient`. Any test over this dataset must seed all three generators.
 
 The trap was not confined to tests. The training-degradation row of the table above had to be replaced because the measurement that produced it seeded only numpy and torch, so its kernels were drawn from ambient state and the numbers could not be reproduced. A published measurement, not just a flaky test, had been quietly contaminated. `eval_face_mild.py` now seeds all three generators in one function, and re-running it twice returns figures identical to the last decimal.
+
+## Run 13: the published recipe on the licensed Commons corpus
+
+The licensed corpus finally exists -- 1,414 training faces and 64 validation, collected from Wikimedia Commons under
+CC0, public domain, CC BY and CC BY-SA and reviewed by hand (`commons_face_corpus.md`). At 2% of FFHQ it cannot make a
+good prior, so the question it can answer is whether the published config stays stable on it.
+
+| Run | Change from previous | Settings | Result |
+|---|---|---|---|
+| 13 | base 12 on the licensed Commons corpus, with `mild_prob` 0.5 | the published config otherwise unchanged: 1,414 training faces, component lr 2.5e-5, batch 2, 10,000 iterations | **Stable.** Clean streak 10,000 from the first iteration, no violation on any of the four checks. Validation PSNR 11.79 → 22.71 over 41 validations with no drop above 1 dB. 1h43 of GPU |
+
+The data regime is the point of interest. 1,414 faces at batch 2 is 707 iterations per epoch, so the model sees each
+face about fourteen times over the run, against roughly once in run 09 on 9,927 FFHQ faces. High repetition did not
+destabilise it, and the validation PSNR plateaus from about iteration 3,000 without regressing. That plateau is not
+comparable to run 09's 21.18: the validation set is 64 faces from this corpus, not from FFHQ.
+
+Two factors changed from run 09 at once, the corpus and `mild_prob` 0.5, because the question was about the recipe as
+published rather than about either factor alone. The stable result makes bisection unnecessary: if both together are
+stable, neither is destabilising. A negative result would have required taking them apart.
+
+**The stability is held by the gradient clip rather than intrinsic.** `g_grad_norm` before clipping has a median of
+3.92 and a maximum of 499, so the run contains gradient spikes two orders of magnitude above typical and
+`generator_grad_clip: 10` absorbed every one. No criterion was violated, which is the clip doing its job, but anyone
+considering removing it should know this run would likely fail the spike check without it.
