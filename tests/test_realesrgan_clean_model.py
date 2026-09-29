@@ -4,10 +4,15 @@ What this fork changed in Real-ESRGAN's training is the guidance: the VGG19/Imag
 discriminator feature matching takes its place. test_realesrgan_mild covers the degradation branch; this covers
 the losses, which is the part that was rewritten.
 """
+import pytest
 import torch
 
 import gfpgan  # noqa: F401  (registers the clean archs)
 from gfpgan.models.realesrgan_clean_model import RealESRGANCleanModel
+
+# basicsr's RealESRGANModel, which this model inherits, calls .cuda() unconditionally in __init__ and in its
+# training pair pool (_dequeue_and_enqueue), so this training path needs a GPU and cannot be tested without one.
+pytestmark = pytest.mark.skipif(not torch.cuda.is_available(), reason='RealESRGANModel is CUDA-only in basicsr')
 
 SIZE = 32
 SCALE = 2

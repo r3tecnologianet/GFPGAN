@@ -4,6 +4,10 @@ from basicsr.utils import DiffJPEG, USMSharp
 
 from gfpgan.models.realesrgan_clean_model import RealESRGANCleanModel
 
+# basicsr's RealESRGANModel, which this model inherits, calls .cuda() unconditionally in __init__ and in its
+# training pair pool (_dequeue_and_enqueue), so this training path needs a GPU and cannot be tested without one.
+pytestmark = pytest.mark.skipif(not torch.cuda.is_available(), reason='RealESRGANModel is CUDA-only in basicsr')
+
 
 def _degradation_opt(mild_prob):
     """The degradation half of a training config, which is all feed_data reads."""

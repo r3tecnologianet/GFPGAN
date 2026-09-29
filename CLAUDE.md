@@ -62,6 +62,8 @@ pytest -o addopts="" tests/test_face_helper.py::test_face_helper_align_and_paste
 ```
 The MediaPipe tests download their models into `gfpgan/weights/` on first run and reuse them afterwards.
 `.github/workflows/tests.yml` runs the suite on Python 3.11 with CPU wheels, so a push that breaks it fails CI.
+The 11 Real-ESRGAN training tests are skipped there: basicsr's `RealESRGANModel` calls `.cuda()` unconditionally,
+so that path needs a GPU. Run the suite locally on one before pushing a change to `realesrgan_clean_model.py`.
 
 Statement coverage is 79%. `tests/conftest.py` holds the doubles the inference tests share: `GFPGANer`
 hardcodes a 512x512 generator, so a constant-output stand-in and a detector that reports the alignment template
