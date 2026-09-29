@@ -6,32 +6,15 @@ on:
 
 jobs:
   build:
-    permissions: write-all
+    permissions:
+      contents: write
     name: Create Release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+      # actions/create-release is archived and runs on Node 12; the preinstalled gh CLI does the same job
       - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: GFPGAN ${{ github.ref }} Release Note
-          body: |
-            🚀 See you again 😸
-            🚀Have a nice day 😸 and happy everyday 😃
-            🚀 Long time no see ☄️
-
-            ✨ **Highlights**
-            ✅ [Features] Support ...
-
-            🐛 **Bug Fixes**
-
-            🌴 **Improvements**
-
-            📢📢📢
-          draft: true
-          prerelease: false
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft \
+            --title "GFPGAN $GITHUB_REF_NAME Release Note" --generate-notes
