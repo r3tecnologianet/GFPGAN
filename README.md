@@ -38,16 +38,18 @@ detector and landmarker always run on CPU.
 ```bash
 git clone https://github.com/r3tecnologianet/GFPGAN.git
 cd GFPGAN
-pip install torch==2.1.2 torchvision==0.16.2 "numpy<2"
-pip install --no-build-isolation basicsr==1.4.2
-pip install "mediapipe==0.10.14" -r requirements.txt
+pip install -c constraints.txt torch==2.1.2 torchvision==0.16.2
+pip install -c constraints.txt --no-build-isolation basicsr==1.4.2
+pip install -c constraints.txt "mediapipe==0.10.14" -r requirements.txt
 python setup.py develop
 ```
 
 The pins are not cosmetic. basicsr 1.4.2 imports `torchvision.transforms.functional_tensor`, removed in
 torchvision 0.17, which caps torchvision at 0.16 and therefore Python at 3.11 and numpy below 2. mediapipe
 1.x needs numpy 2, so 0.10.x is what fits; it cannot run the BlazeFace full-range model, so the default
-detector is short range. MediaPipe downloads its models into `gfpgan/weights/` on first use.
+detector is short range. `constraints.txt` keeps numpy below 2 across all three installs: pinning it once
+is not enough, since a later install upgrades it for opencv-python 5.x, which requires numpy 2 and breaks
+torch 2.1.2. MediaPipe downloads its models into `gfpgan/weights/` on first use.
 
 ## Inference
 

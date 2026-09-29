@@ -22,11 +22,13 @@ jobs:
         cache: pip
 
     - name: Install the pinned stack
+      env:
+        # every pip call below honours it; a one-off "numpy<2" install was undone by opencv-python 5.x
+        PIP_CONSTRAINT: constraints.txt
       run: |
         python -m pip install --upgrade pip
         # CPU wheels: the runner has no GPU, and the tests fall back to CPU on their own
         pip install torch==2.1.2 torchvision==0.16.2 --index-url https://download.pytorch.org/whl/cpu
-        pip install "numpy<2"
         # basicsr's setup.py imports torch, so it cannot be built in isolation from it
         pip install --no-build-isolation basicsr==1.4.2
         pip install "mediapipe==0.10.14" -r requirements.txt
@@ -34,6 +36,8 @@ jobs:
         python setup.py develop
 
     - name: Test with coverage
+      env:
+        PIP_CONSTRAINT: constraints.txt
       run: |
         pip install pytest pytest-cov
         pytest --cov --cov-report=term-missing

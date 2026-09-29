@@ -15,13 +15,13 @@ Branch `main` removes or replaces components with commercial-use restrictions. `
 ## Setup
 
 ```bash
-pip install torch==2.1.2 torchvision==0.16.2 "numpy<2"
-pip install --no-build-isolation basicsr==1.4.2
-pip install "mediapipe==0.10.14" -r requirements.txt
+pip install -c constraints.txt torch==2.1.2 torchvision==0.16.2
+pip install -c constraints.txt --no-build-isolation basicsr==1.4.2
+pip install -c constraints.txt "mediapipe==0.10.14" -r requirements.txt
 python setup.py develop          # also generates gfpgan/version.py from VERSION + git sha
 ```
 
-Version constraints: basicsr 1.4.2 imports `torchvision.transforms.functional_tensor` (removed in torchvision 0.17), so use torchvision ≤ 0.16 (Python ≤ 3.11) and numpy < 2. mediapipe 1.x needs numpy 2; mediapipe 0.10.x works but cannot run the BlazeFace full-range model, so the default detector is short range. MediaPipe models download into `gfpgan/weights/` (git-ignored) and run on CPU.
+Version constraints: basicsr 1.4.2 imports `torchvision.transforms.functional_tensor` (removed in torchvision 0.17), so use torchvision ≤ 0.16 (Python ≤ 3.11) and numpy < 2. mediapipe 1.x needs numpy 2; mediapipe 0.10.x works but cannot run the BlazeFace full-range model, so the default detector is short range. MediaPipe models download into `gfpgan/weights/` (git-ignored) and run on CPU. `constraints.txt` holds numpy below 2 across every install: pinning it once is not enough, since a later install upgrades it for opencv-python 5.x, which requires numpy 2 and breaks torch 2.1.2.
 
 ## Commands
 

@@ -1,0 +1,4 @@
+# Applied to every pip install (-c constraints.txt, or PIP_CONSTRAINT in CI). Pinning numpy once is not enough:
+# a later install can upgrade it to satisfy another package, as opencv-python 5.x does by requiring numpy>=2,
+# and torch 2.1.2 is built against numpy 1.x.
+numpy<2
