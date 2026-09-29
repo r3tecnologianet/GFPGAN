@@ -95,4 +95,4 @@ yapf -r -d gfpgan/ scripts/ inference_gfpgan.py setup.py
 
 ## Release
 
-Bump `VERSION`, then push a git tag: `release.yml` (GitHub release) and `publish-pip.yml` (PyPI) both run only on tag pushes. Don't hand-edit `gfpgan/version.py`, since it is generated.
+Bump `VERSION`, then push a git tag: `release.yml` creates the GitHub release and runs only on tag pushes. Nothing publishes to PyPI: the `gfpgan` name there belongs to upstream, so `publish-pip.yml` was removed. Don't hand-edit `gfpgan/version.py`, since it is generated.

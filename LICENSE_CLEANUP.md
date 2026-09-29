@@ -129,6 +129,7 @@ all, and GFPGAN's own release weights state no terms, all of them resting on FFH
 | `CODE_OF_CONDUCT.md` | Conduct reports went to upstream maintainers' personal addresses; they now go to this repository's issue tracker |
 | `setup.py` | `author`, `author_email` and `url` named a third party and pointed at upstream; the description now says this is the licence-cleanup fork |
 | `.github/workflows/release.yml` | Release notes no longer hotlink upstream's logo from upstream's raw content host |
+| `.github/workflows/publish-pip.yml` | Removed: it published to the `gfpgan` name on PyPI, which belongs to upstream, and installed torch 1.7.0, which this fork's pins cannot use |
 
 ## Kept with caveats
 
