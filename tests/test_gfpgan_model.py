@@ -115,3 +115,36 @@ def test_gfpgan_model_feature_matching():
     model.optimize_parameters(current_iter=1)
     assert 'g_grad_norm' in model.log_dict
     assert torch.isfinite(torch.tensor(model.log_dict['g_grad_norm']))
+
+
+def _data():
+    return {'lq': torch.rand((2, 3, 32, 32)) * 2 - 1, 'gt': torch.rand((2, 3, 32, 32)) * 2 - 1}
+
+
+def test_the_generator_is_frozen_during_the_discriminator_warm_up():
+    """The fine-tune starts its discriminators from scratch and relies on net_d_init_iters to train them alone."""
+    opt = _get_opt(feature_matching_weight=1.0)
+    opt['train']['net_d_init_iters'] = 5
+    model = GFPGANModel(opt)
+    model.feed_data(_data())
+    g_before = [p.detach().clone() for p in model.net_g.parameters()]
+    d_before = [p.detach().clone() for p in model.net_d.parameters()]
+    model.optimize_parameters(current_iter=1)
+    assert all(torch.equal(b, p) for b, p in zip(g_before, model.net_g.parameters()))
+    assert any(not torch.equal(b, p) for b, p in zip(d_before, model.net_d.parameters()))
+    assert 'l_g_pix' not in model.log_dict
+    model.optimize_parameters(current_iter=6)
+    assert any(not torch.equal(b, p) for b, p in zip(g_before, model.net_g.parameters()))
+
+
+def test_a_checkpoint_with_only_ema_weights_initialises_both_generators(tmp_path):
+    """The exported run 10 file holds params_ema alone, and the fine-tune starts from it."""
+    source = GFPGANModel(_get_opt(feature_matching_weight=1.0)).net_g
+    path = tmp_path / 'ema_only.pth'
+    torch.save({'params_ema': source.state_dict()}, path)
+    opt = _get_opt(feature_matching_weight=1.0)
+    opt['path'].update(pretrain_network_g=str(path), param_key_g='params_ema')
+    model = GFPGANModel(opt)
+    for net in (model.net_g, model.net_g_ema):
+        for (name, a), b in zip(source.state_dict().items(), net.state_dict().values()):
+            assert torch.equal(a.cpu(), b.cpu()), name
