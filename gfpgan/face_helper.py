@@ -2,6 +2,8 @@ import cv2
 import numpy as np
 from basicsr.utils.download_util import load_file_from_url
 
+from gfpgan.component_boxes import FaceMeshLandmarker
+
 # MediaPipe face detector models (Apache License 2.0 model cards)
 MEDIAPIPE_FACE_MODELS = {
     'blaze_face_short_range': ('https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/'
@@ -18,6 +20,46 @@ FACE_TEMPLATE_512 = np.array(
 
 # indices of (observer's left eye, observer's right eye, nose tip, mouth center) in MediaPipe keypoints
 MEDIAPIPE_KEYPOINT_INDICES = (0, 1, 2, 3)
+
+# Face Mesh indices of the eye and lip contours, in the observer's view (the subject's right eye is on the observer's
+# left). Their centres replace BlazeFace's keypoints when the Face Landmarker refines a detection: BlazeFace's nose
+# tip varies by 24 px between FFHQ faces, and FFHQ's own alignment does not use the nose.
+LANDMARKER_LEFT_EYE = (33, 7, 163, 144, 145, 153, 154, 155, 133, 173, 157, 158, 159, 160, 161, 246)
+LANDMARKER_RIGHT_EYE = (263, 249, 390, 373, 374, 380, 381, 382, 362, 398, 384, 385, 386, 387, 388, 466)
+LANDMARKER_LIPS = (61, 146, 91, 181, 84, 17, 314, 405, 321, 375, 291, 185, 40, 39, 37, 0, 267, 269, 270, 409)
+
+# Where those three centres fall in a 512x512 FFHQ face: their mean over 1,000 FFHQ faces, each shrunk to 256 px in
+# a 1024 canvas and found as below. On 1,000 other faces this alignment reproduces FFHQ's with 1.9 degrees of
+# rotation spread and a median centre shift of 2.2 px, against 5.1 degrees and 10 px for the BlazeFace template
+# (docs/superpowers/specs/2026-09-30-face-finetune-design.md).
+LANDMARKER_TEMPLATE_512 = np.array([[194.967, 242.852], [317.677, 242.872], [256.204, 378.048]], dtype=np.float32)
+
+# The landmarker runs on the detection box enlarged by this fraction of its longer side on every side.
+LANDMARKER_CROP_PAD = 0.5
+
+
+def landmarker_keypoints(points):
+    """Left eye, right eye and lip centres (observer's view) from 478 Face Mesh landmarks."""
+    points = np.asarray(points, dtype=np.float32)
+    return np.stack(
+        [points[list(idx)].mean(axis=0) for idx in (LANDMARKER_LEFT_EYE, LANDMARKER_RIGHT_EYE, LANDMARKER_LIPS)])
+
+
+def similarity_lstsq(src, dst):
+    """Least-squares similarity transform mapping src onto dst (Umeyama 1991), as a 2x3 matrix.
+
+    Every point weighs the same. With three keypoints a robust estimator such as LMEDS has nothing to reject and
+    measured worse (90th percentile centre shift 12.8 px against 9.4 px on BlazeFace's eyes and mouth).
+    """
+    src = np.asarray(src, dtype=np.float64)
+    dst = np.asarray(dst, dtype=np.float64)
+    mean_src, mean_dst = src.mean(axis=0), dst.mean(axis=0)
+    s, d = src - mean_src, dst - mean_dst
+    u, sig, vt = np.linalg.svd(d.T @ s / len(src))
+    e = np.diag([1.0, np.sign(np.linalg.det(u @ vt))])
+    rot = u @ e @ vt
+    scale = (sig * np.diag(e)).sum() / (s**2).sum(axis=1).mean()
+    return np.hstack([scale * rot, (mean_dst - scale * rot @ mean_src)[:, None]]).astype(np.float32)
 
 
 def _window_positions(length, side, stride):
@@ -145,6 +187,9 @@ class FaceHelper():
         min_score (float): Minimum detection confidence. Default: 0.6.
         face_det (object): Detector with a ``detect(img)`` method returning (boxes, scores, keypoints).
             If None, a ``MediaPipeFaceDetector`` is created. Default: None.
+        landmarker (object | str | None): Face landmarker with a ``detect(img)`` method returning (478, 2) points or
+            None. ``'auto'`` creates a ``FaceMeshLandmarker``; None aligns with BlazeFace's keypoints only.
+            Default: 'auto'.
     """
 
     def __init__(self,
@@ -154,7 +199,8 @@ class FaceHelper():
                  model_rootpath=None,
                  tile_scales=(0.5, 0.25),
                  min_score=0.6,
-                 face_det=None):
+                 face_det=None,
+                 landmarker='auto'):
         self.upscale_factor = upscale_factor
         self.face_size = (face_size, face_size)
         self.face_template = FACE_TEMPLATE_512 * (face_size / 512.0)
@@ -162,6 +208,10 @@ class FaceHelper():
             face_det = MediaPipeFaceDetector(
                 model_name=det_model, model_rootpath=model_rootpath, min_score=min_score, tile_scales=tile_scales)
         self.face_det = face_det
+        if landmarker == 'auto':
+            landmarker = FaceMeshLandmarker(model_rootpath=model_rootpath)
+        self.landmarker = landmarker
+        self.landmarker_template = LANDMARKER_TEMPLATE_512 * (face_size / 512.0)
         self.clean_all()
 
     def clean_all(self):
@@ -182,11 +232,27 @@ class FaceHelper():
             img = img[:, :, 0:3]
         self.input_img = img
 
+    def _landmarker_keypoints(self, box):
+        """Eye and lip centres found by the Face Landmarker on a crop around the box, or None."""
+        if self.landmarker is None:
+            return None
+        h, w = self.input_img.shape[0:2]
+        x1, y1, x2, y2 = box[0:4]
+        pad = LANDMARKER_CROP_PAD * max(x2 - x1, y2 - y1)
+        cx1, cy1 = int(max(0, x1 - pad)), int(max(0, y1 - pad))
+        cx2, cy2 = int(min(w, x2 + pad)), int(min(h, y2 + pad))
+        points = self.landmarker.detect(np.ascontiguousarray(self.input_img[cy1:cy2, cx1:cx2], dtype=np.uint8))
+        if points is None:
+            return None
+        return landmarker_keypoints(points) + np.array([cx1, cy1], dtype=np.float32)
+
     def get_face_landmarks(self, only_keep_largest=False, only_center_face=False, eye_dist_threshold=None):
         """Detect faces and keep their alignment keypoints. Returns the number of faces kept."""
         boxes, scores, keypoints = self.face_det.detect(np.ascontiguousarray(self.input_img, dtype=np.uint8))
         for box, score, kps in zip(boxes, scores, keypoints):
-            landmark = kps[list(MEDIAPIPE_KEYPOINT_INDICES)]
+            landmark = self._landmarker_keypoints(box)
+            if landmark is None:
+                landmark = kps[list(MEDIAPIPE_KEYPOINT_INDICES)]
             # skip side faces and faces that are too small
             if eye_dist_threshold is not None and np.linalg.norm(landmark[0] - landmark[1]) < eye_dist_threshold:
                 continue
@@ -211,7 +277,10 @@ class FaceHelper():
     def align_warp_face(self):
         """Align and warp faces to the face template."""
         for landmark in self.all_landmarks:
-            affine_matrix = cv2.estimateAffinePartial2D(landmark, self.face_template, method=cv2.LMEDS)[0]
+            if len(landmark) == len(self.landmarker_template):
+                affine_matrix = similarity_lstsq(landmark, self.landmarker_template)
+            else:
+                affine_matrix = cv2.estimateAffinePartial2D(landmark, self.face_template, method=cv2.LMEDS)[0]
             if affine_matrix is None:
                 continue
             self.affine_matrices.append(affine_matrix)

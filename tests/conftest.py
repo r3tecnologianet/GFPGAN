@@ -108,7 +108,7 @@ def patch_network(monkeypatch):
             utils,
             'FaceHelper',
             lambda upscale_factor, face_size=512, det_model=None, model_rootpath=None: FaceHelper(
-                upscale_factor, face_size=face_size, face_det=face_det))
+                upscale_factor, face_size=face_size, face_det=face_det, landmarker=None))
         return face_det
 
     return _patch
