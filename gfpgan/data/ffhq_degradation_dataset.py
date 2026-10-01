@@ -28,6 +28,15 @@ SECOND_JPEG_RANGE = [30, 95]
 SECOND_INTERPOLATIONS = (cv2.INTER_AREA, cv2.INTER_LINEAR, cv2.INTER_CUBIC)
 
 
+def transform_box(box, matrix, w, h):
+    """Axis-aligned box around the four corners of box after a 2x3 affine matrix, clipped to a w x h image."""
+    x1, y1, x2, y2 = box
+    corners = np.array([[x1, y1], [x2, y1], [x1, y2], [x2, y2]], dtype=np.float64)
+    mapped = corners @ np.asarray(matrix, dtype=np.float64)[:, :2].T + np.asarray(matrix, dtype=np.float64)[:, 2]
+    (nx1, ny1), (nx2, ny2) = mapped.min(axis=0), mapped.max(axis=0)
+    return [float(np.clip(nx1, 0, w)), float(np.clip(ny1, 0, h)), float(np.clip(nx2, 0, w)), float(np.clip(ny2, 0, h))]
+
+
 @DATASET_REGISTRY.register()
 class FFHQDegradationDataset(data.Dataset):
     """FFHQ dataset for GFPGAN.
@@ -91,6 +100,12 @@ class FFHQDegradationDataset(data.Dataset):
         # Probability of adding the second degradation pass above. A mild sample never gets it. Defaults to 0, which
         # reproduces the single-pass pipeline exactly.
         self.second_order_prob = opt.get('second_order_prob', 0)
+
+        # Random similarity transform of the ground truth, as {'rotation': degrees, 'scale': fraction, 'shift': px}.
+        # Inference crops are not aligned exactly as FFHQ is: with the Face Landmarker alignment the residual is
+        # about 2 degrees, 5% scale and a few pixels, and training on perturbed crops of that size keeps the model
+        # from depending on a precision it never gets. None, the default, leaves the image untouched.
+        self.align_jitter = opt.get('align_jitter')
 
         # color jitter
         self.color_jitter_prob = opt.get('color_jitter_prob')
@@ -185,6 +200,18 @@ class FFHQDegradationDataset(data.Dataset):
             boxes = self.component_boxes[osp.splitext(osp.basename(gt_path))[0]]
             if status[0]:
                 boxes = flip_component_boxes(boxes, w)
+
+        # alignment jitter, applied to the ground truth before any degradation and carried to the boxes
+        if self.align_jitter:
+            angle = np.random.uniform(-self.align_jitter['rotation'], self.align_jitter['rotation'])
+            factor = np.random.uniform(1 - self.align_jitter['scale'], 1 + self.align_jitter['scale'])
+            matrix = cv2.getRotationMatrix2D((w / 2, h / 2), angle, factor)
+            matrix[:, 2] += np.random.uniform(-self.align_jitter['shift'], self.align_jitter['shift'], 2)
+            img_gt = cv2.warpAffine(img_gt, matrix, (w, h), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT_101)
+            if self.crop_components:
+                boxes = {name: transform_box(boxes[name], matrix, w, h) for name in ('left_eye', 'right_eye', 'mouth')}
+
+        if self.crop_components:
             loc_left_eye, loc_right_eye, loc_mouth = [
                 torch.tensor(boxes[name], dtype=torch.float32) for name in ('left_eye', 'right_eye', 'mouth')
             ]
