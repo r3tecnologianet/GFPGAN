@@ -554,3 +554,107 @@ stable, neither is destabilising. A negative result would have required taking t
 3.92 and a maximum of 499, so the run contains gradient spikes two orders of magnitude above typical and
 `generator_grad_clip: 10` absorbed every one. No criterion was violated, which is the clip doing its job, but anyone
 considering removing it should know this run would likely fail the spike check without it.
+
+## Run 14: stage 1 fine-tune of the run 10 generator
+
+Stage 1 of the face fine-tune design (`docs/superpowers/specs/2026-09-30-face-finetune-design.md`) starts from the
+run 10 generator and trains it on a harder degradation, to improve NIQE and LMD without losing component PSNR in any
+skin tone group. The result is negative: no checkpoint met the acceptance criteria.
+
+| Run | Change from run 10 | Settings | Result |
+|---|---|---|---|
+| 14 | generator and EMA initialised from the run 10 weights; discriminators from scratch with a 2,000-iteration warm-up (generator frozen); two-pass degradation and alignment jitter | `second_order_prob` 0.5, `align_jitter` 2° / 5% / 3 px, `mild_prob` 0.5, generator lr 6.25e-6, global discriminator lr 2e-5, component lr 2.5e-5, 50,000 iterations | **Stable** (`analyze.py`). Clean streak 50,000 from the first iteration, no non-finite value, no spike, no \|score\| >= 100, no PSNR drop above 1 dB. `g_grad_norm` before clipping: median 0.578, maximum 12.9. Validation PSNR best 24.19 at 5,000, 23.79 at 50,000. 8h10 of GPU (08:51 to the 50,000 checkpoint at 17:01) |
+
+### Discriminator warm-up
+
+The generator is frozen for the first 2,000 iterations while the discriminators train. The first attempt (run 14a)
+ran the discriminators at a quarter of their base learning rates. At iteration 2,000 the real and fake scores were
+-0.0233 and -0.0235 and `l_d` was 1.3863 = ln 4, the value of a discriminator that cannot tell the two apart, so the
+run was stopped. Run 14b, the run recorded above, used the base rates. Over iterations 1,500 to 2,000 its mean
+real-fake score gap was 0.0040 (run 14a 0.0021; run 10 over the same iterations 0.0426) with a mean `l_d` of 1.3854.
+
+The warm-up needed a code change. During it the generator forward built an autograd graph that was never
+backpropagated, and that graph stayed alive through the discriminator step and its R1 graph. On the 8 GB GPU this ran
+out of memory at iteration 1, while the same config with `net_d_init_iters` 0 ran. The generator forward now runs
+without gradient on every iteration where the generator is not updated, which changes memory use only: the generator
+is not stepped on those iterations either way. A test checks that the output carries no gradient during the warm-up and
+does afterwards.
+
+### Evaluation
+
+Evaluated on the 256 FFHQ validation pairs, the same set and tool as the baseline. Only four of the ten checkpoints
+were evaluated (5,000, 15,000, 30,000 and 50,000): the GPU was held by another process, so the evaluation ran on the
+CPU at about 30 minutes per checkpoint. The four span the run and include the best validation PSNR (5,000) and the end.
+Gains are over the degraded input, with 95% bootstrap intervals. `ours100k` is run 10; LMD counts only faces where
+the landmarks were found.
+
+| Model | Group | n | PSNR gain (dB) | Component PSNR gain (dB) | NIQE | LMD |
+|---|---|---|---|---|---|---|
+| ours100k | light | 220 | +1.33 [+0.89, +1.80] | +1.45 [+1.03, +1.89] | 3.75 | 3.17 |
+| ours100k | medium | 22 | +0.70 [-0.01, +1.44] | +0.56 [-0.13, +1.24] | 3.78 | 3.42 |
+| ours100k | dark | 14 | -0.14 [-0.70, +0.36] | -0.01 [-0.57, +0.59] | 3.92 | 3.27 |
+| it50000 | light | 220 | +2.05 [+1.62, +2.51] | +2.15 [+1.74, +2.61] | 5.78 | 3.17 |
+| it50000 | medium | 22 | +1.46 [+0.79, +2.13] | +1.33 [+0.70, +1.99] | 5.89 | 3.42 |
+| it50000 | dark | 14 | +0.80 [+0.21, +1.39] | +0.85 [+0.26, +1.46] | 5.49 | 3.36 |
+
+Means over all 256 faces:
+
+| Model | PSNR | Component PSNR | NIQE | LMD (n) |
+|---|---|---|---|---|
+| degraded input | 21.855 | 21.307 | 12.744 | 6.232 (488 of 512 rows, both CSVs pooled) |
+| ours100k | 23.047 | 22.597 | 3.761 | 3.198 (255, one detection failure) |
+| it5000 | 24.186 | 23.214 | 6.260 | 3.351 (256) |
+| it15000 | 23.854 | 23.226 | 5.730 | 3.250 (256) |
+| it30000 | 23.798 | 23.270 | 5.873 | 3.251 (256) |
+| it50000 | 23.785 | 23.319 | 5.774 | 3.199 (256) |
+
+The acceptance criteria were NIQE lower overall, LMD lower overall, and no group losing more than 0.2 dB of component
+PSNR gain against run 10.
+
+| Checkpoint | NIQE lower | LMD lower | Component PSNR gain lower by more than 0.2 dB in a group | Accepted |
+|---|---|---|---|---|
+| it5000 | no (6.260 against 3.761) | no (3.351 against 3.198) | no | no |
+| it15000 | no (5.730) | no (3.250) | no | no |
+| it30000 | no (5.873) | no (3.251) | no | no |
+| it50000 | no (5.774) | no (3.199 against 3.198) | no | no |
+
+PSNR and component PSNR improved in every group at every checkpoint. The dark group's component PSNR gain rose from
+-0.01 dB to +0.85 dB [+0.26, +1.46] at 50,000 (n = 14), but its interval overlaps run 10's, as do the medium group's.
+NIQE got worse at every checkpoint, 5.73 to 6.26 against 3.76 (the ground truth faces score 3.77), and LMD did not
+improve. The guardrail passed and the two target metrics failed, so no checkpoint is accepted.
+
+A grid of inputs, run 10 and run 14 outputs (`eval/run14_grid.jpg`) shows fewer artefacts in run 14 and visibly
+smoother output, with less hair, beard and skin texture. That is the perception-distortion trade: the pixel metrics
+rise and NIQE, which rewards natural texture, falls, as the table shows.
+
+**Likely cause (a hypothesis, not tested).** The adversarial signal was weak. The discriminators started from scratch;
+at a quarter of base lr they learned nothing in the warm-up (run 14a), and at base lr the global discriminator's
+real-fake gap grew only to about 0.03, where run 10 ended at 0.14. The three facial component discriminators stayed at
+`l_d` = ln 4 for the whole run. With them inert, the pixel and feature-matching losses dominated, which would produce a
+smoother output with higher PSNR. A run that tests this would need trained discriminators or a longer warm-up, and
+neither was run here.
+
+Limits: four of ten checkpoints were evaluated, so a checkpoint between them is not ruled out, though the smallest
+NIQE gap among the four is 1.97. The real-photograph sets were not available, so only the FFHQ validation pairs were
+measured. All weights here are FFHQ-trained and stay local; none is released.
+
+### Alignment fix at inference
+
+Separate from the training result, and accepted. `FaceHelper` now aligns with the Face Landmarker's eye and lip
+centres instead of the four BlazeFace keypoints. Measured on 1,000 aligned FFHQ faces against the reference alignment
+(`align_check_helper.json`): none missed, 998 refined by the landmarker, scale mean 0.9989 with standard deviation
+0.0483, rotation standard deviation 3.94 degrees, shift median 2.16 px and 90th percentile 5.32 px.
+
+Landmarker keypoints are accepted only when all three centres lie inside BlazeFace's detection box; otherwise the
+BlazeFace keypoints are used. The guard exists because without it face 001603 had a scale of 3.41: the landmarker
+locked onto a background person in the padded crop. With the guard that face falls back to BlazeFace (scale 0.959).
+Two known cases, one in a thousand each. Face 001603 above, now handled by the fallback. And face 004475, where the
+detector reports a spurious second box and the measurement keeps only the largest, so the landmarker's centres, which
+belong to the real face, fall outside it and are rejected, giving scale 1.374 and rotation -108.8 degrees. This case
+alone accounts for the rotation standard deviation of 3.94. At inference every detected face is processed, so the real
+face (score 0.96) is aligned by the landmarker; the spurious box produces a badly rotated extra crop, as it did with
+the old alignment.
+
+### Next step
+
+Stage 2 (JTT) is not started: the design gates it on an accepted stage 1 checkpoint.
