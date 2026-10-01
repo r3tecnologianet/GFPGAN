@@ -620,10 +620,12 @@ PSNR gain against run 10.
 
 PSNR and component PSNR improved in every group at every checkpoint. The dark group's component PSNR gain rose from
 -0.01 dB to +0.85 dB [+0.26, +1.46] at 50,000 (n = 14), but its interval overlaps run 10's, as do the medium group's.
-NIQE got worse at every checkpoint, 5.73 to 6.26 against 3.76 (the ground truth faces score 3.765, `eval_reference.out`), and LMD did not
-improve. The guardrail passed and the two target metrics failed, so no checkpoint is accepted.
+NIQE got worse at every checkpoint, 5.73 to 6.26 against 3.76 (the ground truth faces score 3.765, in
+`eval_reference.out`, kept outside the repository like the evaluation script), and LMD did not improve. The guardrail
+passed and the two target metrics failed, so no checkpoint is accepted.
 
-A grid of inputs, run 10 and run 14 outputs (`eval/run14_grid.jpg`) shows fewer artefacts in run 14 and visibly
+A grid of inputs, run 10 and run 14 outputs (`run14_grid.jpg`, kept outside the repository, under
+`/mnt/dados/gfpgan-clean/`) shows fewer artefacts in run 14 and visibly
 smoother output, with less hair, beard and skin texture. That is the perception-distortion trade: the pixel metrics
 rise and NIQE, which rewards natural texture, falls, as the table shows.
 
@@ -643,13 +645,15 @@ measured. All weights here are FFHQ-trained and stay local; none is released.
 
 Separate from the training result, and accepted. `FaceHelper` now aligns with the Face Landmarker's eye and lip
 centres instead of the four BlazeFace keypoints. Measured on 1,000 aligned FFHQ faces against the reference alignment
-(`align_check_helper.json`): none missed, 998 refined by the landmarker, scale mean 0.9989 with standard deviation
+(`align_check_helper.json`, kept outside the repository with the measurement tool, under
+`/mnt/dados/gfpgan-clean/`): none missed, 998 refined by the landmarker, scale mean 0.9989 with standard deviation
 0.0483, rotation standard deviation 3.94 degrees, shift median 2.16 px and 90th percentile 5.32 px.
 
 Landmarker keypoints are accepted only when all three centres lie inside BlazeFace's detection box; otherwise the
 BlazeFace keypoints are used. The guard exists because without it face 001603 had a scale of 3.41: the landmarker
 locked onto a background person in the padded crop. With the guard that face falls back to BlazeFace (scale 0.959).
-Two known cases, one in a thousand each (figures from the Task 1 report). Face 001603 above, now handled by the fallback. And face 004475, where the
+Two known cases, one in a thousand each, from the same measurement (its tool and output live outside the repository,
+under `/mnt/dados/gfpgan-clean/`). Face 001603 above, now handled by the fallback. And face 004475, where the
 detector reports a spurious second box and the measurement keeps only the largest, so the landmarker's centres, which
 belong to the real face, fall outside it and are rejected, giving scale 1.374 and rotation -108.8 degrees. This case
 alone accounts for the rotation standard deviation of 3.94. At inference every detected face is processed, so the real

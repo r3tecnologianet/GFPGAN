@@ -31,7 +31,8 @@ LANDMARKER_LIPS = (61, 146, 91, 181, 84, 17, 314, 405, 321, 375, 291, 185, 40, 3
 # Where those three centres fall in a 512x512 FFHQ face: their mean over 1,000 FFHQ faces, each shrunk to 256 px in
 # a 1024 canvas and found as below. On 1,000 other faces this alignment reproduces FFHQ's with 1.9 degrees of
 # rotation spread and a median centre shift of 2.2 px, against 5.1 degrees and 10 px for the BlazeFace template
-# (docs/superpowers/specs/2026-09-30-face-finetune-design.md).
+# (docs/superpowers/specs/2026-09-30-face-finetune-design.md). The box guard later sends two of those 1,000 faces
+# back to BlazeFace (see docs/training_stability.md).
 LANDMARKER_TEMPLATE_512 = np.array([[194.967, 242.852], [317.677, 242.872], [256.204, 378.048]], dtype=np.float32)
 
 # The landmarker runs on the detection box enlarged by this fraction of its longer side on every side.
@@ -175,8 +176,10 @@ class MediaPipeFaceDetector():
 class FaceHelper():
     """Detect, align, and paste back faces for restoration.
 
-    Detection uses MediaPipe BlazeFace. Alignment is a similarity transform from four keypoints (eyes, nose tip,
-    mouth center) to ``FACE_TEMPLATE_512``. Paste-back uses a feathered square mask.
+    Detection uses MediaPipe BlazeFace. Alignment uses the Face Landmarker's eye and lip centres with a
+    least-squares similarity transform to ``LANDMARKER_TEMPLATE_512``. It falls back to the four BlazeFace keypoints
+    (eyes, nose tip, mouth center) and ``FACE_TEMPLATE_512`` (LMEDS) when the landmarker is off, finds nothing, or
+    its centres leave the detection box. Paste-back uses a feathered square mask.
 
     Args:
         upscale_factor (int): Upscale factor of the final output.
@@ -281,6 +284,7 @@ class FaceHelper():
     def align_warp_face(self):
         """Align and warp faces to the face template."""
         for landmark in self.all_landmarks:
+            # three points are the landmarker centres, four are the BlazeFace keypoints
             if len(landmark) == len(self.landmarker_template):
                 affine_matrix = similarity_lstsq(landmark, self.landmarker_template)
             else:

@@ -96,3 +96,11 @@ def test_component_boxes_follow_the_jittered_image(tmp_path):
         x1, y1, x2, y2 = item['loc_left_eye'].tolist()
         assert x1 <= cx <= x2 and y1 <= cy <= y2
         assert abs((x1 + x2) / 2 - cx) < 1.5 and abs((y1 + y2) / 2 - cy) < 1.5
+
+
+def test_a_partial_jitter_dict_works(tmp_path):
+    folder, _ = _folder_with_square(tmp_path)
+    plain = build_dataset(_opt(folder))
+    _seed()
+    moved = build_dataset(_opt(folder, align_jitter=dict(shift=3)))[0]['gt']
+    assert not torch.allclose(plain[0]['gt'], moved, atol=1e-3)

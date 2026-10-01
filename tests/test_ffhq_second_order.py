@@ -85,7 +85,8 @@ def test_the_second_pass_degrades_further(gt_folder):
 
 def test_a_mild_sample_skips_the_second_pass(gt_folder):
     both = _mean_psnr(build_dataset(_opt(gt_folder, mild_prob=1.0, second_order_prob=1)))
-    assert both > 30, f'a mild sample was degraded twice: {both:.2f} dB'
+    # Measured means: 41.1 dB with the `not mild` guard, 29.8 dB without it; 35 is midway.
+    assert both > 35, f'a mild sample was degraded twice: {both:.2f} dB'
 
 
 def test_the_total_downsampling_stays_within_range(gt_folder):

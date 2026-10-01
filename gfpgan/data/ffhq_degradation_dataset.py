@@ -203,10 +203,11 @@ class FFHQDegradationDataset(data.Dataset):
 
         # alignment jitter, applied to the ground truth before any degradation and carried to the boxes
         if self.align_jitter:
-            angle = np.random.uniform(-self.align_jitter['rotation'], self.align_jitter['rotation'])
-            factor = np.random.uniform(1 - self.align_jitter['scale'], 1 + self.align_jitter['scale'])
+            jitter = self.align_jitter
+            angle = np.random.uniform(-jitter.get('rotation', 0), jitter.get('rotation', 0))
+            factor = np.random.uniform(1 - jitter.get('scale', 0), 1 + jitter.get('scale', 0))
             matrix = cv2.getRotationMatrix2D((w / 2, h / 2), angle, factor)
-            matrix[:, 2] += np.random.uniform(-self.align_jitter['shift'], self.align_jitter['shift'], 2)
+            matrix[:, 2] += np.random.uniform(-jitter.get('shift', 0), jitter.get('shift', 0), 2)
             img_gt = cv2.warpAffine(img_gt, matrix, (w, h), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT_101)
             if self.crop_components:
                 boxes = {name: transform_box(boxes[name], matrix, w, h) for name in ('left_eye', 'right_eye', 'mouth')}
