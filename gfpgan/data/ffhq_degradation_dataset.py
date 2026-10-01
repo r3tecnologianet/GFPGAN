@@ -14,6 +14,19 @@ from torchvision.transforms.functional import (adjust_brightness, adjust_contras
 
 from gfpgan.component_boxes import flip_component_boxes
 
+# The second degradation pass of Real-ESRGAN (Wang et al. 2021, arXiv:2107.10833), with its published second-stage
+# ranges. Applied at the low-quality size, after the first pass, so the input carries two rounds of blur, resampling,
+# noise and compression, as photographs that were copied, resized and re-saved do.
+SECOND_BLUR_PROB = 0.8
+SECOND_BLUR_SIGMA = [0.2, 1.5]
+SECOND_RESIZE_RANGE = [0.3, 1.2]  # output size over input size
+SECOND_GAUSSIAN_NOISE_PROB = 0.5
+SECOND_NOISE_RANGE = [1, 25]
+SECOND_POISSON_SCALE_RANGE = [0.05, 2.5]
+SECOND_GRAY_NOISE_PROB = 0.4
+SECOND_JPEG_RANGE = [30, 95]
+SECOND_INTERPOLATIONS = (cv2.INTER_AREA, cv2.INTER_LINEAR, cv2.INTER_CUBIC)
+
 
 @DATASET_REGISTRY.register()
 class FFHQDegradationDataset(data.Dataset):
@@ -75,6 +88,10 @@ class FFHQDegradationDataset(data.Dataset):
         # Defaults to 0, which reproduces the pipeline above exactly.
         self.mild_prob = opt.get('mild_prob', 0)
 
+        # Probability of adding the second degradation pass above. A mild sample never gets it. Defaults to 0, which
+        # reproduces the single-pass pipeline exactly.
+        self.second_order_prob = opt.get('second_order_prob', 0)
+
         # color jitter
         self.color_jitter_prob = opt.get('color_jitter_prob')
         self.color_jitter_pt_prob = opt.get('color_jitter_pt_prob')
@@ -123,6 +140,31 @@ class FFHQDegradationDataset(data.Dataset):
                 hue_factor = torch.tensor(1.0).uniform_(hue[0], hue[1]).item()
                 img = adjust_hue(img, hue_factor)
         return img
+
+    def _second_pass(self, img, w, h):
+        """Degrade an already degraded low-quality image once more, at its own size.
+
+        The resize is capped so that the total downsampling from the w x h ground truth stays within
+        downsample_range, which keeps the second pass from producing inputs smaller than the first pass can.
+        """
+        if np.random.uniform() < SECOND_BLUR_PROB:
+            kernel = degradations.random_mixed_kernels(['iso', 'aniso'], [0.5, 0.5],
+                                                       21,
+                                                       SECOND_BLUR_SIGMA,
+                                                       SECOND_BLUR_SIGMA, [-math.pi, math.pi],
+                                                       noise_range=None)
+            img = cv2.filter2D(img, -1, kernel)
+        factor = np.random.uniform(SECOND_RESIZE_RANGE[0], SECOND_RESIZE_RANGE[1])
+        new_w = max(int(img.shape[1] * factor), int(math.ceil(w / self.downsample_range[1])))
+        new_h = max(int(img.shape[0] * factor), int(math.ceil(h / self.downsample_range[1])))
+        interpolation = SECOND_INTERPOLATIONS[np.random.randint(len(SECOND_INTERPOLATIONS))]
+        img = cv2.resize(img, (new_w, new_h), interpolation=interpolation)
+        if np.random.uniform() < SECOND_GAUSSIAN_NOISE_PROB:
+            img = degradations.random_add_gaussian_noise(img, SECOND_NOISE_RANGE, gray_prob=SECOND_GRAY_NOISE_PROB)
+        else:
+            img = degradations.random_add_poisson_noise(
+                img, SECOND_POISSON_SCALE_RANGE, gray_prob=SECOND_GRAY_NOISE_PROB)
+        return degradations.add_jpg_compression(img, int(np.random.uniform(SECOND_JPEG_RANGE[0], SECOND_JPEG_RANGE[1])))
 
     def __getitem__(self, index):
         if self.file_client is None:
@@ -185,6 +227,10 @@ class FFHQDegradationDataset(data.Dataset):
             # OpenCV requires an integer quality; basicsr's random_add_jpg_compression passes a float
             quality = int(np.random.uniform(jpeg_range[0], jpeg_range[1]))
             img_lq = degradations.add_jpg_compression(img_lq, quality)
+
+        # second degradation pass, never on a mild sample
+        if not mild and self.second_order_prob > 0 and np.random.uniform() < self.second_order_prob:
+            img_lq = self._second_pass(img_lq, w, h)
 
         # resize to original size
         img_lq = cv2.resize(img_lq, (w, h), interpolation=cv2.INTER_LINEAR)
