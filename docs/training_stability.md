@@ -620,7 +620,7 @@ PSNR gain against run 10.
 
 PSNR and component PSNR improved in every group at every checkpoint. The dark group's component PSNR gain rose from
 -0.01 dB to +0.85 dB [+0.26, +1.46] at 50,000 (n = 14), but its interval overlaps run 10's, as do the medium group's.
-NIQE got worse at every checkpoint, 5.73 to 6.26 against 3.76 (the ground truth faces score 3.77), and LMD did not
+NIQE got worse at every checkpoint, 5.73 to 6.26 against 3.76 (the ground truth faces score 3.765, `eval_reference.out`), and LMD did not
 improve. The guardrail passed and the two target metrics failed, so no checkpoint is accepted.
 
 A grid of inputs, run 10 and run 14 outputs (`eval/run14_grid.jpg`) shows fewer artefacts in run 14 and visibly
@@ -629,7 +629,8 @@ rise and NIQE, which rewards natural texture, falls, as the table shows.
 
 **Likely cause (a hypothesis, not tested).** The adversarial signal was weak. The discriminators started from scratch;
 at a quarter of base lr they learned nothing in the warm-up (run 14a), and at base lr the global discriminator's
-real-fake gap grew only to about 0.03, where run 10 ended at 0.14. The three facial component discriminators stayed at
+real-fake gap averaged 0.048 over the last 10,000 iterations of run 14b (40,000 to 50,000), against 0.139 over the last
+10,000 of run 10 (90,000 to 100,000). The three facial component discriminators stayed at
 `l_d` = ln 4 for the whole run. With them inert, the pixel and feature-matching losses dominated, which would produce a
 smoother output with higher PSNR. A run that tests this would need trained discriminators or a longer warm-up, and
 neither was run here.
@@ -648,7 +649,7 @@ centres instead of the four BlazeFace keypoints. Measured on 1,000 aligned FFHQ 
 Landmarker keypoints are accepted only when all three centres lie inside BlazeFace's detection box; otherwise the
 BlazeFace keypoints are used. The guard exists because without it face 001603 had a scale of 3.41: the landmarker
 locked onto a background person in the padded crop. With the guard that face falls back to BlazeFace (scale 0.959).
-Two known cases, one in a thousand each. Face 001603 above, now handled by the fallback. And face 004475, where the
+Two known cases, one in a thousand each (figures from the Task 1 report). Face 001603 above, now handled by the fallback. And face 004475, where the
 detector reports a spurious second box and the measurement keeps only the largest, so the landmarker's centres, which
 belong to the real face, fall outside it and are rejected, giving scale 1.374 and rotation -108.8 degrees. This case
 alone accounts for the rotation standard deviation of 3.94. At inference every detected face is processed, so the real
