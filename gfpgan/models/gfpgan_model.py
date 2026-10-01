@@ -320,11 +320,17 @@ class GFPGANModel(BaseModel):
         build_pyramid = pyramid_loss_weight > 0
         if build_pyramid and current_iter > self.opt['train'].get('remove_pyramid_loss', float('inf')):
             pyramid_loss_weight = 0.0
+        # The generator is updated only on these iterations. On the others (the discriminator warm-up, or between
+        # net_d_iters) no generator loss is computed, so its forward runs without a graph: kept alive through the
+        # discriminator step and its R1 term, that graph alone exhausts an 8 GB GPU at batch 2.
+        update_g = current_iter % self.net_d_iters == 0 and current_iter > self.net_d_init_iters
         if build_pyramid:
-            self.output, out_rgbs = self.net_g(self.lq, return_rgb=True)
+            with torch.set_grad_enabled(update_g):
+                self.output, out_rgbs = self.net_g(self.lq, return_rgb=True)
             pyramid_gt = self.construct_img_pyramid()
         else:
-            self.output, out_rgbs = self.net_g(self.lq, return_rgb=False)
+            with torch.set_grad_enabled(update_g):
+                self.output, out_rgbs = self.net_g(self.lq, return_rgb=False)
 
         # get roi-align regions
         if self.use_facial_disc:
@@ -332,7 +338,7 @@ class GFPGANModel(BaseModel):
 
         l_g_total = 0
         loss_dict = OrderedDict()
-        if (current_iter % self.net_d_iters == 0 and current_iter > self.net_d_init_iters):
+        if update_g:
             # pixel loss
             if self.cri_pix:
                 l_g_pix = self.cri_pix(self.output, self.gt)

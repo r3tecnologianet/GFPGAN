@@ -148,3 +148,15 @@ def test_a_checkpoint_with_only_ema_weights_initialises_both_generators(tmp_path
     for net in (model.net_g, model.net_g_ema):
         for (name, a), b in zip(source.state_dict().items(), net.state_dict().values()):
             assert torch.equal(a.cpu(), b.cpu()), name
+
+
+def test_no_generator_graph_is_built_while_the_generator_is_not_updated():
+    """A warm-up iteration computes no generator loss, so its forward must not keep an autograd graph alive."""
+    opt = _get_opt(feature_matching_weight=1.0)
+    opt['train']['net_d_init_iters'] = 5
+    model = GFPGANModel(opt)
+    model.feed_data(_data())
+    model.optimize_parameters(current_iter=1)
+    assert not model.output.requires_grad
+    model.optimize_parameters(current_iter=6)
+    assert model.output.requires_grad
