@@ -73,7 +73,7 @@ class _OneBoxDetector():
 class _FakeLandmarker():
     """Puts the eye and lip centres at fixed crop coordinates and records the crop it was given."""
 
-    centres = np.array([[50, 60], [150, 60], [100, 200]], np.float32)
+    centres = np.array([[170, 180], [270, 180], [220, 300]], np.float32)
 
     def __init__(self, found=True):
         self.found = found
@@ -131,3 +131,13 @@ def test_three_keypoints_align_to_the_landmarker_template():
     helper.align_warp_face()
     affine = helper.affine_matrices[0]
     np.testing.assert_allclose(landmark @ affine[:, :2].T + affine[:, 2], LANDMARKER_TEMPLATE_512, atol=1e-2)
+
+
+def test_landmarks_outside_the_detection_box_fall_back_to_the_blazeface_keypoints():
+    landmarker = _FakeLandmarker()
+    landmarker.centres = np.array([[5, 5], [30, 5], [15, 20]], np.float32)  # map to x 85..110, y 105..125
+    helper = FaceHelper(upscale_factor=1, face_det=_OneBoxDetector(), landmarker=landmarker)
+    helper.read_image(np.zeros((800, 800, 3), np.uint8))
+    assert helper.get_face_landmarks() == 1
+    expected = (np.arange(12, dtype=np.float32).reshape(6, 2) + 300)[:4]
+    np.testing.assert_allclose(helper.all_landmarks[0], expected)

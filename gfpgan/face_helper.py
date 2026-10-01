@@ -244,7 +244,11 @@ class FaceHelper():
         points = self.landmarker.detect(np.ascontiguousarray(self.input_img[cy1:cy2, cx1:cx2], dtype=np.uint8))
         if points is None:
             return None
-        return landmarker_keypoints(points) + np.array([cx1, cy1], dtype=np.float32)
+        keypoints = landmarker_keypoints(points) + np.array([cx1, cy1], dtype=np.float32)
+        # in a padded crop the landmarker can lock onto another, smaller face (seen once in 1,000 FFHQ faces: 001603)
+        if not np.all((keypoints >= [x1, y1]) & (keypoints <= [x2, y2])):
+            return None
+        return keypoints
 
     def get_face_landmarks(self, only_keep_largest=False, only_center_face=False, eye_dist_threshold=None):
         """Detect faces and keep their alignment keypoints. Returns the number of faces kept."""
