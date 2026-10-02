@@ -663,3 +663,30 @@ the old alignment.
 ### Next step
 
 Stage 2 (JTT) is not started: the design gates it on an accepted stage 1 checkpoint.
+
+## The facial component discriminators stopped learning in runs 09 and 10
+
+Run 14's inert component discriminators led back to the earlier runs, and the same signature is there. Mean `l_d` of
+the left eye, right eye and mouth discriminators per 10,000 iterations, from the training logs:
+
+| Run | Iterations 0-9,999 | From 10,000 on |
+|---|---|---|
+| 09 | 1.380, 1.371, 1.386 | 1.387, 1.387, 1.389 |
+| 10 | 1.380, 1.370, 1.384 | 1.386 for all three in every window to 100,000 |
+| 14b | 1.386, 1.386, 1.386 | 1.386 for all three in every window to 50,000 |
+
+1.386 is ln 4, the loss of a discriminator that outputs the same logit for real and fake. After the first 10,000
+iterations of runs 09 and 10 the component discriminators therefore contributed nothing, and the published recipe's
+facial component losses (and the gain attributed to them in run 09) rest on that first stretch only.
+
+The cause is the component learning rate, not the code. Run 14's saved left-eye discriminator gives logits within
+0.04 of zero for real, restored and even degraded crops, and its last layer is still at its initial scale after
+50,000 iterations. The update path itself is correct (gradients are re-enabled for the component networks before
+their step, and the crops are taken from the right boxes). A fresh discriminator trained offline on left-eye crops of
+the 256 validation faces (200 to train, 56 held out, batch 8, 3,000 steps) separates the ground truth from the degraded
+input at 88% held-out accuracy with the configured 2.5e-5, so the network can learn; ground truth against run 10's
+restorations stays at chance with 2.5e-5 (47%), and reaches 69% with 2e-4 (76% on its training crops, still rising).
+The 2.5e-5 came from the stability screening, where the generator started from scratch and its eyes were easy to tell
+apart; once the restorations are good, it is too small to learn anything. This offline probe uses fixed restorations
+and 200 faces, so it shows the direction, not the value to train with: a short run at a component learning rate of
+2e-4 is the next test, judged on whether the component losses leave ln 4 and the stability criterion stays clean.
