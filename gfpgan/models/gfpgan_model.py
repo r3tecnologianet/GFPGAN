@@ -13,6 +13,8 @@ from torch.nn import functional as F
 from torchvision.ops import roi_align
 from tqdm import tqdm
 
+from gfpgan.models.component_crop_pool import ComponentCropPool
+
 
 @MODEL_REGISTRY.register()
 class GFPGANModel(BaseModel):
@@ -99,6 +101,17 @@ class GFPGANModel(BaseModel):
 
             # ----------- define facial component gan loss ----------- #
             self.cri_component = build_loss(train_opt['gan_component_opt']).to(self.device)
+
+            # Optional history pool for the component discriminator step (see ComponentCropPool).
+            # `component_pool_size` (default 0 = off) is the FIFO capacity per component and
+            # `component_pool_batch` (default 0) how many pooled (real, fake) pairs join each discriminator step.
+            # The generator's component losses never use the pool. Pools are not saved in checkpoints.
+            pool_size = train_opt.get('component_pool_size', 0)
+            self.component_pool_batch = train_opt.get('component_pool_batch', 0)
+            if pool_size > 0 and self.component_pool_batch > 0:
+                self.component_pools = {k: ComponentCropPool(pool_size) for k in ('left_eye', 'right_eye', 'mouth')}
+            else:
+                self.component_pools = None
 
         # ----------- define losses ----------- #
         # pixel loss
@@ -480,30 +493,26 @@ class GFPGANModel(BaseModel):
 
         # optimize facial component discriminators
         if self.use_facial_disc:
-            # left eye
-            fake_d_pred, _ = self.net_d_left_eye(self.left_eyes.detach())
-            real_d_pred, _ = self.net_d_left_eye(self.left_eyes_gt)
-            l_d_left_eye = self.cri_component(
-                real_d_pred, True, is_disc=True) + self.cri_gan(
-                    fake_d_pred, False, is_disc=True)
-            loss_dict['l_d_left_eye'] = l_d_left_eye
-            l_d_left_eye.backward()
-            # right eye
-            fake_d_pred, _ = self.net_d_right_eye(self.right_eyes.detach())
-            real_d_pred, _ = self.net_d_right_eye(self.right_eyes_gt)
-            l_d_right_eye = self.cri_component(
-                real_d_pred, True, is_disc=True) + self.cri_gan(
-                    fake_d_pred, False, is_disc=True)
-            loss_dict['l_d_right_eye'] = l_d_right_eye
-            l_d_right_eye.backward()
-            # mouth
-            fake_d_pred, _ = self.net_d_mouth(self.mouths.detach())
-            real_d_pred, _ = self.net_d_mouth(self.mouths_gt)
-            l_d_mouth = self.cri_component(
-                real_d_pred, True, is_disc=True) + self.cri_gan(
-                    fake_d_pred, False, is_disc=True)
-            loss_dict['l_d_mouth'] = l_d_mouth
-            l_d_mouth.backward()
+            for name, net, fake, real in (
+                ('left_eye', self.net_d_left_eye, self.left_eyes, self.left_eyes_gt),
+                ('right_eye', self.net_d_right_eye, self.right_eyes, self.right_eyes_gt),
+                ('mouth', self.net_d_mouth, self.mouths, self.mouths_gt),
+            ):
+                fake_in, real_in = fake.detach(), real
+                if self.component_pools is not None:
+                    pool = self.component_pools[name]
+                    drawn = pool.sample(self.component_pool_batch)
+                    if drawn is not None:
+                        real_in = torch.cat([real, drawn[0]], dim=0)
+                        fake_in = torch.cat([fake_in, drawn[1]], dim=0)
+                    pool.push(real, fake_in[:fake.size(0)])
+                fake_d_pred, _ = net(fake_in)
+                real_d_pred, _ = net(real_in)
+                l_d = self.cri_component(
+                    real_d_pred, True, is_disc=True) + self.cri_gan(
+                        fake_d_pred, False, is_disc=True)
+                loss_dict[f'l_d_{name}'] = l_d
+                l_d.backward()
 
             self.optimizer_d_left_eye.step()
             self.optimizer_d_right_eye.step()

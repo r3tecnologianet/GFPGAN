@@ -312,3 +312,38 @@ def test_a_model_without_component_discriminators_skips_them(tmp_path):
     model.feed_data(_data(with_locations=False))
     model.optimize_parameters(current_iter=1)
     assert 'l_g_gan_left_eye' not in model.log_dict
+
+
+def _record_batch_sizes(net):
+    sizes = []
+    net.register_forward_hook(lambda module, inputs, output: sizes.append(inputs[0].shape[0]))
+    return sizes
+
+
+def test_the_pool_is_off_by_default_and_draws_no_random_numbers(tmp_path):
+    model = GFPGANModel(_opt(tmp_path))
+    assert model.component_pools is None
+    sizes = _record_batch_sizes(model.net_d_left_eye)
+    for it in (1, 2):
+        model.feed_data(_data(batch=2))
+        model.optimize_parameters(current_iter=it)
+    # per step: one generator-side call, then fake and real discriminator calls, all at the batch size
+    assert sizes == [2] * 6
+
+
+def test_the_pool_adds_crops_to_the_discriminator_step_only(tmp_path):
+    opt = _opt(tmp_path, size=512)
+    opt['train']['component_pool_size'] = 8
+    opt['train']['component_pool_batch'] = 2
+    model = GFPGANModel(opt)
+    sizes = _record_batch_sizes(model.net_d_left_eye)
+    model.feed_data(_data(size=512, batch=2))
+    model.optimize_parameters(current_iter=1)
+    assert sizes == [2, 2, 2]  # generator side, fake, real: the pool is empty at the first step
+    assert len(model.component_pools['left_eye']) == 2
+    sizes.clear()
+    model.feed_data(_data(size=512, batch=2))
+    model.optimize_parameters(current_iter=2)
+    assert sizes == [2, 4, 4]  # the generator side still sees B, the discriminator B + min(2, pool size)
+    assert len(model.component_pools['left_eye']) == 4
+    assert not model.component_pools['mouth'].sample(1)[0].requires_grad
