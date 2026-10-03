@@ -747,3 +747,49 @@ The learning rate is now bracketed: 2.5e-5 (runs 10 and 14b) learns nothing, 2e-
 frozen generator only, and 2e-3 (run 17) does not learn at all. No rate makes these discriminators work at batch 2.
 What none of these runs changed is the number of crops each discriminator sees per step, two, against twelve upstream;
 that is the next variable to test.
+
+### Runs 18-20: more crops per discriminator step
+
+**Run 18 (batch 4) does not fit.** Run 15's settings at batch 4 run out of memory on the 8 GB GPU at the first
+generator update (7.15 GiB in use, a 512 MiB allocation refused); the warm-up iterations alone fit. Nothing was
+trained.
+
+**A crop history pool instead.** `component_pool_size` and `component_pool_batch` (training options, both off by
+default) keep a FIFO pool of earlier (real, fake) component crop pairs per component and add `component_pool_batch`
+randomly drawn pairs to each discriminator step, drawn before the current pair is pushed; the generator's component
+losses still see only the current crops (`gfpgan/models/component_crop_pool.py`). It is the history buffer of
+Shrivastava et al. 2017 (SimGAN) and the image pool of Zhu et al. 2017 (CycleGAN), applied to the component crops so
+that each step sees 12 crops, as upstream's batch did, without enlarging the generator's batch.
+
+| Run | Change from run 15 | Settings | Result |
+|---|---|---|---|
+| 19 | crop pool | pool 256, 10 drawn per step | **Stable** (clean streak 5,000), but `g_grad_norm` median 6.54 and max 334 (run 15: 0.711 and 26.3), every spike absorbed by the clip at 10. Validation PSNR 23.38 at 2,500, 22.61 at 5,000. Component losses stay below ln 4 after the warm-up |
+| 20 | crop pool and component GAN weight 0.05 | as run 19, weight was 1.0 | **Stable** (clean streak 5,000; `g_grad_norm` median 0.826, max 6.26). Validation PSNR 23.91 → 24.18. Component losses below ln 4 after the warm-up, by less |
+
+Mean component `l_d` (left eye, right eye, mouth) per 500 iterations:
+
+| Iterations | Run 19 | Run 20 |
+|---|---|---|
+| 1,500-1,999 (end of warm-up) | 1.347, 1.349, 1.362 | 1.342, 1.349, 1.362 |
+| 2,000-2,499 (generator starts) | 1.367, 1.370, 1.361 | 1.380, 1.378, 1.374 |
+| 4,500-4,999 | 1.350, 1.339, 1.322 | 1.351, 1.373, 1.331 |
+
+The pool fixes the collapse: for the first time since iteration 10,000 of run 10, the component discriminators keep a
+margin after the generator starts moving, and the global discriminator's real-fake gap grows with them in run 19
+(0.39 over 4,500-4,999, against 0.003 in run 20).
+
+Whether a working component discriminator helps the restoration is a separate question, and the answer from these
+two runs is not yet. On the 256 validation pairs (raw network output, the same evaluation as run 14):
+
+| Model | PSNR | Component PSNR | NIQE | LMD |
+|---|---|---|---|---|
+| Run 10 (100,000 iterations) | 23.05 | 22.60 | 3.76 | 3.20 |
+| Run 14b at 5,000 | 24.19 | 23.21 | 6.26 | 3.35 |
+| Run 19 at 5,000 | 22.61 | 20.12 | 4.37 | 6.90 |
+| Run 20 at 5,000 | 24.18 | 22.96 | 6.34 | 3.95 |
+
+At weight 1.0 the component terms pull texture back (NIQE 4.37 against run 14b's 6.26) but distort the components
+themselves: component PSNR falls 2.5 dB below run 10 and the landmark distance doubles, with generator gradients ten
+times larger. At 0.05 the output is as smooth as run 14b's and LMD is still worse than run 10's. Each run is 5,000
+iterations of a fine-tune that starts from discriminators trained from scratch, so these are early readings, and a
+component weight between the two is the next variable.
