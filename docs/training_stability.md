@@ -793,3 +793,29 @@ themselves: component PSNR falls 2.5 dB below run 10 and the landmark distance d
 times larger. At 0.05 the output is as smooth as run 14b's and LMD is still worse than run 10's. Each run is 5,000
 iterations of a fine-tune that starts from discriminators trained from scratch, so these are early readings, and a
 component weight between the two is the next variable.
+
+### Runs 21 and 22: the component weight between 0.05 and 1.0
+
+Run 20's settings (crop pool 256 with 10 drawn per step, component discriminator lr 2e-4) with the component GAN
+weight at 0.2 and 0.5. Both stable (clean streak 5,000); `g_grad_norm` median 1.71 and max 18 at 0.2, median 3.44 and
+max 219 at 0.5. The component discriminators keep a margin after the warm-up in both (mean component `l_d` at
+4,500-4,999: 1.339, 1.368, 1.322 at 0.2; 1.351, 1.338, 1.326 at 0.5), and the global real-fake gap reaches 0.19 in both.
+
+The whole sweep on the 256 validation pairs at iteration 5,000:
+
+| Component weight | Run | PSNR | Component PSNR | NIQE | LMD |
+|---|---|---|---|---|---|
+| (run 10, 100,000 iterations) | 10 | 23.05 | 22.60 | 3.76 | 3.20 |
+| none working (2.5e-5, no pool) | 14b | 24.19 | 23.21 | 6.26 | 3.35 |
+| 0.05 | 20 | 24.18 | 22.96 | 6.34 | 3.95 |
+| 0.2 | 21 | 23.91 | 22.36 | 5.90 | 4.66 |
+| 0.5 | 22 | 23.10 | 20.67 | 5.17 | 5.93 |
+| 1.0 | 19 | 22.61 | 20.12 | 4.37 | 6.90 |
+
+The trade is monotonic: as the component weight rises, NIQE falls (more texture) and the landmark distance rises
+(the eyes and mouth move away from where they are in the ground truth), and component PSNR falls with it. No weight
+reaches run 10 on either metric at this point, and every weight with a working component discriminator has a worse
+LMD than run 14b had without one (3.95 to 6.90 against 3.35). In these 5,000-iteration fine-tunes from fresh
+discriminators the facial component losses buy texture by moving the components, which is the opposite of what they
+are for. Whether that settles with longer training, or needs the component Gram style loss that upstream pairs with
+them (weight 200, off here since screening round 1), was not tested.
