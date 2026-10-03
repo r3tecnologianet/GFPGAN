@@ -819,3 +819,18 @@ LMD than run 14b had without one (3.95 to 6.90 against 3.35). In these 5,000-ite
 discriminators the facial component losses buy texture by moving the components, which is the opposite of what they
 are for. Whether that settles with longer training, or needs the component Gram style loss that upstream pairs with
 them (weight 200, off here since screening round 1), was not tested.
+
+### Run 23: with upstream's component Gram style loss
+
+Run 21 (component weight 0.2, crop pool) with `comp_style_weight` 200, upstream's value, off in this fork since
+screening round 1. Stable (clean streak 5,000; `g_grad_norm` median 1.73, max 13.9); validation PSNR 23.79. On the 256
+validation pairs at 5,000: PSNR 23.79, component PSNR 21.99, NIQE 5.78, LMD 4.47, against 23.91, 22.36, 5.90 and 4.66
+for run 21 without it. The style term stays small at weight 200 (median 0.0036 over its first 500 logged iterations,
+0.0084 over its last 500), because the Gram matrices are taken from the component discriminators' features, which
+are small, and its effect is within what separates neighbouring weights in the sweep. It does not change the trade
+the sweep found.
+
+The facial component losses as they stand do not improve the fine-tune in any configuration tried: with them inert
+(runs 10 and 14) they cost nothing and give nothing, and with them working (runs 19-23) they trade landmark accuracy
+for texture at every weight. Five-thousand-iteration readings from fresh discriminators are the limit of what was
+measured; a long run at one weight is the remaining test, and it was not run.
