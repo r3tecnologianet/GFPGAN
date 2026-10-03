@@ -723,3 +723,27 @@ instead is a discriminator too weak to track a moving target. By the end of the 
 probe above needed batch 8 and 3,000 steps at 2e-4 to reach 69% held-out accuracy against a fixed generator. A
 generator moving at 6.25e-6 is enough to erase a margin that small. This is an inference from these runs, not yet a
 tested result.
+
+### How upstream trains them, and run 17
+
+Upstream's `options/train_gfpgan_v1.yml` (commit `7552a77`) trains the facial component discriminators with Adam at
+2e-3, the same rate as its generator and global discriminator, at batch 3 per GPU on 4 GPUs (12 in total), component
+GAN weight 1 and a Gram style weight of 200. Its `FacialComponentDiscriminator` is built from StyleGAN2 `ConvLayer`s,
+whose equalized learning rate multiplies each weight by 1/sqrt(fan_in) in the forward pass. An Adam step of 2e-3 on
+those weights therefore moves the effective weights by about 2e-3/sqrt(fan_in): 8e-5 for a 3x3 layer with 64 inputs,
+4e-5 for one with 256. This fork's `FacialComponentDiscriminatorClean` uses plain convolutions, so upstream's 2e-3
+corresponds to roughly 4e-5 to 8e-5 here. Runs 15 and 16 at 2e-4 were already above it, and the clearest remaining
+difference from upstream is the batch: 12 against 2.
+
+| Run | Change from run 16 | Settings | Result |
+|---|---|---|---|
+| 17 | component discriminator lr 2e-3 (upstream's number, taken literally) | was 2e-4 | **Stable** (clean streak 5,000; `g_grad_norm` median 0.591, max 40.2). Validation PSNR 24.02 → 24.03. Component losses never fall below ln 4, not even during the warm-up: window means of 1.386 to 1.49, with spikes |
+
+Mean component `l_d` (left eye, right eye, mouth) per 500 iterations, run 17: 1.484, 1.399, 1.388 at 0-499; 1.410,
+1.397, 1.432 at 1,500-1,999; 1.423, 1.389, 1.388 at 4,500-4,999. At this rate the discriminators overshoot instead of
+learning.
+
+The learning rate is now bracketed: 2.5e-5 (runs 10 and 14b) learns nothing, 2e-4 (runs 15 and 16) learns against a
+frozen generator only, and 2e-3 (run 17) does not learn at all. No rate makes these discriminators work at batch 2.
+What none of these runs changed is the number of crops each discriminator sees per step, two, against twelve upstream;
+that is the next variable to test.
