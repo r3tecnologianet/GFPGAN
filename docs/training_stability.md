@@ -834,3 +834,37 @@ The facial component losses as they stand do not improve the fine-tune in any co
 (runs 10 and 14) they cost nothing and give nothing, and with them working (runs 19-23) they trade landmark accuracy
 for texture at every weight. Five-thousand-iteration readings from fresh discriminators are the limit of what was
 measured; a long run at one weight is the remaining test, and it was not run.
+
+## The new inference alignment on real photographs
+
+The real-photograph test sets used in the literature (WebPhoto-Test, CelebChild-Test, LFW-Test) could not be
+downloaded here, so a substitute was built: 141 portrait photographs of the 1890s from Wikimedia Commons whose
+metadata gives a public-domain or CC0 licence, downloaded at 1,024 px (three categories of 1890s portrait photographs
+of men, women and children). They carry real degradation (grain, fading, scanning, low resolution), not a synthetic
+one. They are kept outside the repository with a manifest of title, licence and source page. They are mostly
+monochrome or sepia and mostly of Europeans and Americans, so they say nothing about skin tone. The same run 10 weights
+restore each photograph twice, once aligned from BlazeFace's four keypoints (the previous alignment) and once from the
+Face Landmarker's eye and lip centres (the current one).
+
+**The crops land much closer to the training framing.** Face Mesh (478 points) on each 512 crop, against the mean
+mesh of the 256 aligned FFHQ validation faces, on the 120 photographs where both crops yield a mesh:
+
+| Points compared | Old alignment | New alignment | Difference (95% bootstrap) | New closer |
+|---|---|---|---|---|
+| All 478 | 21.03 px | 12.28 px | -8.76 [-10.41, -7.30] | 117 of 120 |
+| Face oval only | 38.11 px | 26.42 px | -11.69 [-13.84, -9.86] | 112 of 120 |
+
+The face oval row excludes the eye and lip points the new alignment is fitted to, so the gain is not the alignment
+scoring itself. On real photographs the new alignment therefore removes most of the framing mismatch measured on FFHQ
+in the design work (`docs/superpowers/specs/2026-09-30-face-finetune-design.md`).
+
+**No-reference quality does not move.** NIQE of the restored face, on the 136 photographs where both alignments find a
+face: 3.745 old, 3.757 new, a difference of +0.011 [-0.022, +0.046], new lower on 66. NIQE scores texture statistics and
+is close to blind to framing, so it was not expected to separate them. A grid of 16 pairs shows the two alignments
+giving similar restorations on most faces, and visibly better ones from the new alignment on a few tilted or
+partly occluded faces (one face rendered as melted with the old alignment is coherent with the new). It shows no face
+made worse by the new alignment. The model also colours monochrome photographs, a side effect of training on colour
+faces with grayscale inputs only 1% of the time; it is the same under both alignments.
+
+The measurement tools (`eval_real_alignment.py`, `real_crop_alignment.py`, `fetch_commons_pd_portraits.py`) and
+their outputs are kept outside the repository, under `/mnt/dados/gfpgan-clean/`.
