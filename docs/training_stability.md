@@ -690,3 +690,36 @@ The 2.5e-5 came from the stability screening, where the generator started from s
 apart; once the restorations are good, it is too small to learn anything. This offline probe uses fixed restorations
 and 200 faces, so it shows the direction, not the value to train with: a short run at a component learning rate of
 2e-4 is the next test, judged on whether the component losses leave ln 4 and the stability criterion stays clean.
+
+### Runs 15 and 16: two short diagnostic runs
+
+Both repeat run 14b's settings (generator from the run 10 weights at 6.25e-6, discriminators from scratch with a
+2,000-iteration warm-up, `second_order_prob` 0.5, `align_jitter` 2°/5%/3 px, `mild_prob` 0.5) for 5,000 iterations,
+changing one thing each:
+
+| Run | Change from run 14b | Settings | Result |
+|---|---|---|---|
+| 15 | component discriminator lr 2e-4 | was 2.5e-5 | **Stable** (clean streak 5,000; `g_grad_norm` median 0.711, max 26.3). Validation PSNR 23.78 → 23.97. Component losses fall during the warm-up and return to ln 4 once the generator trains |
+| 16 | run 15 plus component GAN weight 0.05 | was 1.0 (the global GAN weight is 0.05) | **Stable** (clean streak 5,000; `g_grad_norm` median 0.576, max 4.51). Validation PSNR 24.04 at 2,500, 23.91 at 5,000. Same component signature as run 15 |
+
+Mean component `l_d` (left eye, right eye, mouth) per 500 iterations:
+
+| Iterations | Run 15 | Run 16 |
+|---|---|---|
+| 0-499 | 1.386, 1.383, 1.385 | 1.386, 1.384, 1.385 |
+| 1,500-1,999 (end of warm-up) | 1.376, 1.372, 1.378 | 1.377, 1.372, 1.378 |
+| 2,000-2,499 (generator starts) | 1.389, 1.394, 1.391 | 1.387, 1.387, 1.387 |
+| 4,500-4,999 | 1.386, 1.387, 1.386 | 1.386, 1.386, 1.386 |
+
+The two runs are identical up to iteration 2,000 (same seed, and the weight only acts on the generator), so the warm-up
+rows agree. The raised learning rate lets the component discriminators start learning against the frozen generator,
+but they lose it within 500 iterations of the generator moving, at a component weight of 1.0 and at 0.05 alike.
+
+Run 15 had suggested a weight imbalance: at ln 4 the three component terms were 2.08 of the generator's 2.15 total loss
+(median 2.15 over the last 200 iterations, against 0.18 in run 16). Run 16 refutes it as the cause: with the
+generator's component pressure cut twentyfold the discriminators collapse just the same. What the evidence points to
+instead is a discriminator too weak to track a moving target. By the end of the warm-up its margin is small (`l_d`
+1.372-1.378 against 1.386 for a constant output), and it sees two crops per component per step at batch 2; the offline
+probe above needed batch 8 and 3,000 steps at 2e-4 to reach 69% held-out accuracy against a fixed generator. A
+generator moving at 6.25e-6 is enough to erase a margin that small. This is an inference from these runs, not yet a
+tested result.
